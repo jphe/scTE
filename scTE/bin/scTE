@@ -29,7 +29,7 @@ def prepare_parser():
     parser.add_argument('-gene', dest='genefile',nargs='+', 
                         help='Gtf file for genes annotation. Put "default" for use scTE pre-build annotation index (need -te = "default"). For the scTE pre-build annotation index can bed download from https://github.com/jphe/something')
     
-    parser.add_argument('--min_genes', dest='genenumber',metavar='INT', type=int, required=True, default=200, 
+    parser.add_argument('--min_genes', dest='genenumber',metavar='INT', type=int, default=200, 
                         help='Minimum number of genes expressed required for a cell to pass filtering. Default: 200')
     
     parser.add_argument('--min_counts', dest='countnumber',metavar='INT', type=int,
@@ -41,8 +41,8 @@ def prepare_parser():
     parser.add_argument('-g','--genome', metavar='genome', dest='genome',type=str, nargs='?', default='mm', choices=['hs','mm',],required=True,
                         help='"hs" for human, "mm" for mouse, Default: mm')
                         
-    parser.add_argument('-m','--mode', metavar='TEs counting mode', dest='mode', nargs='?', type=str,required=True,
-                        const="exclusive", default='exclusive', choices=['inclusive','exclusive'],
+    parser.add_argument('-m','--mode', metavar='TEs counting mode', dest='mode', nargs='?', type=str,
+                        default='exclusive', choices=['inclusive','exclusive'],
                         help='How to count TEs expression: inclusive (inclued all reads that can map to TEs), or exclusive (exclued the reads that can map to protein coding genes and lncRNAs).\
                         )
                         
