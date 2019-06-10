@@ -13,7 +13,7 @@ from scTE.annotation import annoGtf
 def prepare_parser():
     desc = "hahaha..."
 
-    exmp = "Example: scTE -i scRNA.sorted.bam -t TEs.bed.gz -gene Genes.gtf.gz -n 200 -p -10 -g mm "
+    exmp = "Example: scTE <-i scRNA.sorted.bam> <-t TEs.bed.gz> <-gene Genes.gtf.gz> <-g mm > <-o out> [--min_genes 200] [--min_counts 400] [-p -10]"
 
     parser = argparse.ArgumentParser(prog='scTE',description=desc, epilog=exmp)
     
