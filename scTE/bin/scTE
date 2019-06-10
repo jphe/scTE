@@ -44,7 +44,7 @@ def prepare_parser():
     parser.add_argument('-m','--mode', metavar='TEs counting mode', dest='mode', nargs='?', type=str,required=True,
                         const="exclusive", default='exclusive', choices=['inclusive','exclusive'],
                         help='How to count TEs expression: inclusive (inclued all reads that can map to TEs), or exclusive (exclued the reads that can map to protein coding genes and lncRNAs).\
-                        DEFAULT: exclusive')
+                        )
                         
     parser.add_argument('-o','--out', dest='out', nargs='?', required=True, help='Output file prefix')
                         
