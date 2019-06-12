@@ -1,0 +1,435 @@
+#!/public/home/jphe/anaconda3/bin/python
+import pysam,time,os,sys,gzip,glob,datetime
+import pybedtools
+import multiprocessing
+import argparse
+from functools import partial
+import logging
+import collections
+from math import log
+from glbase3 import genelist, glload, location
+from scTE.annotation import annoGtf
+# from scTE.genome import annotation
+
+def prepare_parser():
+    desc = "hahaha..."
+
+    exmp = "Example: scTE <-i scRNA.sorted.bam> <-t TEs.bed.gz> <-gene Genes.gtf.gz> <-g mm > <-o out> [--min_genes 200] [--min_counts 400] [-p -10]"
+
+    parser = argparse.ArgumentParser(prog='scTE',description=desc, epilog=exmp)
+    
+    parser.add_argument('-i','--input', dest='input', type=str, nargs='+', required=True,
+                        help='Input file: BAM/SAM file outputed by CellRanger or STARsolo, the file must be sored by chromosome position')
+                        
+    parser.add_argument('-f','--format', metavar='input file format', dest='format', type=str, nargs='?', default='BAM', choices=['BAM','SAM'],
+                        help='Input file format: BAM or SAM. DEFAULT: BAM')
+                        
+    parser.add_argument('-te', dest='tefile',nargs='+', 
+                        help='Six columns bed file for transposable elements annotation. Put "default" for use scTE pre-build annotation index (need -gene = "default")')
+    
+    parser.add_argument('-gene', dest='genefile',nargs='+', 
+                        help='Gtf file for genes annotation. Put "default" for use scTE pre-build annotation index (need -te = "default"). For the scTE pre-build annotation index can bed download from https://github.com/jphe/something')
+    
+    parser.add_argument('--min_genes', dest='genenumber',metavar='INT', type=int,default=200, 
+                        help='Minimum number of genes expressed required for a cell to pass filtering. Default: 200')
+    
+    parser.add_argument('--min_counts', dest='countnumber',metavar='INT', type=int,
+                        help='Minimum number of counts required for a cell to pass filtering. Default: 2*min_genes')
+    
+    parser.add_argument('--expect-cells', dest='cellnumber',metavar='INT', type=int,  default=10000, 
+                        help='Expected number of cells. Default: 10000')
+                        
+    parser.add_argument('-g','--genome', metavar='genome', dest='genome',type=str, nargs='?', default='mm', choices=['hs','mm',],required=True,
+                        help='"hs" for human, "mm" for mouse, Default: mm')
+                        
+    parser.add_argument('-m','--mode', metavar='TEs counting mode', dest='mode', nargs='?', type=str,
+                        default='exclusive', choices=['inclusive','exclusive'],
+                        help='How to count TEs expression: inclusive (inclued all reads that can map to TEs), or exclusive (exclued the reads that can map to protein coding genes and lncRNAs).\
+                        DEFAULT: exclusive')
+                        
+    parser.add_argument('-o','--out', dest='out', nargs='?', required=True, help='Output file prefix')
+                        
+    parser.add_argument('-p','--thread', metavar='INT', dest='thread', type=int, default=1, 
+                        help='Number of threads to use, Default: 1')
+                        
+    parser.add_argument('-v','--version', action='version', version='%(prog)s 1.0')
+    
+    return parser
+
+def read_opts(parser):
+    args = parser.parse_args()
+    if args.format == "BAM" :
+        args.parser = "BAM"
+    elif args.format == "SAM" :
+        args.parser = "SAM"
+    else :
+        logging.error("The input file must be SAM/BAM format: %s !\n" % (args.format))
+        sys.exit(1)
+
+    if args.mode not in ['inclusive', 'exclusive'] :
+        logging.error("Counting mode %s not supported\n" % (args.mode))
+        parser.print_help()
+        sys.exit(1)
+    
+    args.error = logging.critical
+    args.warn = logging.warning
+    args.debug = logging.debug
+    args.info = logging.info
+    
+    args.argtxt ="\n".join(("Parameter list:", \
+                "Sample = %s" % (args.out), \
+                "Genome = %s" % (args.genome), \
+                "TE file = %s" % (args.tefile[0]), \
+                "Gene file = %s" % (args.genefile[0]), \
+                "Minimum number of genes required = %s" % (args.genenumber), \
+                "Minimum number of counts required = %s"% (args.countnumber),\
+                "Mode = %s " % (args.mode), \
+                "Number of threads = %s " % (args.thread),\
+    ))
+    return args 
+
+def Bam2bed(filename,out):
+    if not os.path.exists('_tmp/output1'):
+        os.system('mkdir -p _tmp/output1')
+    
+    o = open('%s.test.sh'%out,'w')
+    st = 'samtools view -@ 2 %s | head |awk \'{OFS="\t"}{for(i=1;i<=NF;i++)if($i~/CR:Z:/)n=i}{for(i=1;i<=NF;i++)if($i~/UR:Z:/)m=i}{print n,m}\' > %s.test'%(filename,out)
+    o.write(st)
+    o.close()
+    
+    os.system('sh %s.test.sh'%out)
+    
+    o = open('%s.test'%out,'rU')
+    for l in o:
+        t = l.strip().split('\t')
+        n=int(t[0])
+        m=int(t[1])
+    o.close()
+
+    os.system('rm %s.test*'%out)
+    
+    os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{print $3,$4,$4+100,$%s,$%s}\' | sed -r \'s/CR:Z://g\' | sed -r \'s/UR:Z://g\'| gzip > _tmp/output1/%s.bed.gz'%(filename,n,m,out))
+#     os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{for(i=1;i<=NF;i++)if($i~/CR:Z:/)n=i}{for(i=1;i<=NF;i++)if($i~/UR:Z:/)m=i}{print $3,$4,$4+100,$n,$m}\' | sed -r \'s/CR:Z://g\' | sed -r \'s/UR:Z://g\'| gzip > _tmp/output1/%s.bed.gz'%(filename,out)) # need ~triple time
+
+
+def splitChr(chr,filename):
+    if not os.path.exists('_tmp/output2'):
+        os.system('mkdir -p _tmp/output2')
+    
+    if chr == 'chr1':
+        os.system('zcat -f _tmp/output1/%s.bed.gz | grep -v chr1\'[0-9]\' | grep %s | awk \'!x[$0]++\' | gzip > _tmp/output2/%s.%s.bed.gz'%(filename,chr,filename,chr))
+    elif chr == 'chr2':
+        os.system('zcat -f _tmp/output1/%s.bed.gz | grep -v chr2\'[0-9]\' | grep %s | awk \'!x[$0]++\' | gzip > _tmp/output2/%s.%s.bed.gz'%(filename,chr,filename,chr))
+    else:
+        os.system('zcat -f _tmp/output1/%s.bed.gz | grep %s | awk \'!x[$0]++\' | gzip > _tmp/output2/%s.%s.bed.gz'%(filename,chr,filename,chr))
+    
+    CRs = {}
+    o = gzip.open('_tmp/output2/%s.%s.bed.gz'%(filename,chr),'rb')
+    for l in o:
+        t = l.decode('ascii').strip().split('\t')
+        if t[3] not in CRs:
+            CRs[t[3]] = 0
+        CRs[t[3]] += 1
+    o.close()
+    
+    o = gzip.open('_tmp/output2/%s.%s.count.gz'%(filename,chr),'wt')
+    for k in CRs:
+        o.write('%s\t%s\n'%(k,CRs[k]))
+    o.close()
+
+def intersect(chr,filename,te_file,gene_file):
+    pybedtools.set_tempdir('_tmp/output3/_tmp')
+    a=pybedtools.BedTool('_tmp/output2/%s.%s.bed.gz'%(filename,chr))
+    
+    te_file=pybedtools.BedTool(te_file)
+    gene_file=pybedtools.BedTool(gene_file)
+    
+    overlap_te = te_file.intersect(a,wa=True,wb=True) # takes a lot of memory, ~10-15gb each core/chromosomes
+    overlap_gene = gene_file.intersect(a,wa=True,wb=True)
+    
+    res = {} # res structure is like this {'barcode1':{'gene1:n1,'gene2':n2},'barcode2':{...}}
+    tmp = []
+    for n,k in enumerate(overlap_te):
+        k = str(k).strip().split('\t')
+        if k[9] not in res:
+            res[k[9]] = {}
+        if k[3] not in res[k[9]]:
+            res[k[9]][k[3]] = 0
+        res[k[9]][k[3]] += 1
+    
+    for n,k in enumerate(overlap_gene):
+        k = str(k).strip().split('\t')
+        if k[9] not in res:
+            res[k[9]] = {}
+        if k[3] not in res[k[9]]:
+            res[k[9]][k[3]] = 0
+        res[k[9]][k[3]] += 1
+    
+    oh = gzip.open('_tmp/output3/%s.%s.bed.gz'%(filename,chr),'wt')
+    for barcode in sorted(res):
+        for gene in sorted(res[barcode]):
+            oh.write('%s\t%s\t%s\n'%(barcode,gene,res[barcode][gene]))
+    oh.close()
+
+def align(chr, filename, annot, whitelist):
+    
+    s1=time.time()
+    all_annot=glload(annot)
+    
+    oh = gzip.open('_tmp/output2/%s.%s.bed.gz'%(filename,chr), 'rb')
+    res = {}
+    for i, line in enumerate(oh):
+        t = line.decode('ascii').strip().split('\t')
+
+        chrom = t[0].replace('chr', '')
+        left = int(t[1])
+        rite = int(t[2])
+        barcode = t[3]
+        if barcode not in whitelist:
+            continue
+
+        # reach in to the guts of glbase to get the buckets out:
+        # work out which of the buckets is required:
+        loc = location(chr=chrom, left=left, right=rite)
+        left_buck = int((left-1)/10000) * 10000 # these constatns are the bucket_size from glbase3
+        right_buck = int((rite)/10000) * 10000
+        buckets_reqd = range(left_buck, right_buck+10000, 10000)
+
+        if buckets_reqd:
+            result = []
+            # get the ids reqd.
+            loc_ids = set()
+
+            for buck in buckets_reqd:
+                if buck in all_annot.buckets[chrom]:
+                    loc_ids.update(all_annot.buckets[chrom][buck]) # set = unique ids
+
+            for index in loc_ids:
+                if rite >= all_annot.linearData[index]["loc"].loc['left'] and left <= all_annot.linearData[index]["loc"].loc["right"]:
+                    result.append(all_annot.linearData[index])
+#                     if loc.qcollide(all_annot.linearData[index]["loc"]):
+#                        result.append(all_annot.linearData[index])
+
+            if result:
+                for r in result:
+                    gene = r['annot']
+
+                    if barcode not in res:
+                        res[barcode] = {}
+                    if gene not in res[barcode]:
+                        res[barcode][gene] = 0
+                    res[barcode][gene] += 1
+#         if (i+1) % 1000000 == 0:
+#             print('Processed: {:,}'.format((i+1)))
+
+    oh.close()
+
+    oh = gzip.open('_tmp/output3/%s.%s.bed.gz'%(filename,chr),'wt')
+    for bc in sorted(res):
+        for gene in sorted(res[bc]):
+            oh.write('%s\t%s\t%s\n' % (bc, gene, res[bc][gene]))
+    oh.close()
+    
+#     print('Done %s'%(time.time()-s1))
+
+def Countexpression(filename, allelement, genenumber, cellnumber):
+    gene_seen = allelement
+        
+    whitelist={}
+    o = gzip.open('_tmp/output4/%s.bed.gz'%filename, 'rb')
+    for n,l in enumerate(o):
+        t = l.decode('ascii').strip().split('\t')
+        if t[0] not in whitelist:
+            whitelist[t[0]] = 0
+        whitelist[t[0]] += 1
+    o.close()
+    
+    CRlist = []
+    sortcb=sorted(whitelist.items(),key=lambda item:item[1],reverse=True)
+    for n,k in enumerate(sortcb):
+        if k[1] < genenumber:
+            break
+        if n >= cellnumber:
+            break
+        CRlist.append(k[0])
+    
+    res = {}
+    genes_oh = gzip.open('_tmp/output4/%s.bed.gz'%filename, 'rb')
+    for n, l in enumerate(genes_oh):
+        t = l.decode('ascii').strip().split('\t')
+        if t[0] not in CRlist:
+            continue
+        if t[0] not in res:
+            res[t[0]] = {}
+        if t[1] not in res[t[0]]:
+            res[t[0]][t[1]] = int(t[2])
+        res[t[0]][t[1]] += int(t[2])
+#         if (n+1) % 1000000 == 0:
+#             print('Done %sM counts' % ((n+1)/1e6,))
+    genes_oh.close()
+
+    s=time.time()
+    res_oh = open('%s.tsv'%filename, 'w')
+    res_oh.write('barcodes\t')
+    res_oh.write('%s\n' % ('\t'.join([str(i) for i in sorted(gene_seen)])))
+
+    for k in sorted(res):
+        l = []
+        for gene in sorted(gene_seen):
+            if gene not in res[k]:
+                l.append(0)
+            else:
+                l.append(res[k][gene])
+        res_oh.write('%s\t%s\n' % (k, '\t'.join([str(i) for i in l])))
+    res_oh.close()
+    
+    print('Detect %s cells expressed at least %s genes, results output to %s.tsv'%(len(res),genenumber,filename))
+
+def timediff(timestart, timestop):  
+        t  = (timestop-timestart)  
+        time_day = t.days  
+        s_time = t.seconds 
+        ms_time = t.microseconds / 1000000
+        usedtime = int(s_time + ms_time)  
+        time_hour = int(usedtime / 60 / 60 ) 
+        time_minute = int((usedtime - time_hour * 3600 ) / 60 )
+        time_second =  int(usedtime - time_hour * 3600 - time_minute * 60 )
+        retstr = "%dd %dh %dm %ds"  %(time_day, time_hour, time_minute, time_second,)  
+        return retstr  
+
+def main():
+    """Start scTEs......parse options......"""
+
+    timestart=datetime.datetime.now()
+    args=read_opts(prepare_parser())
+
+    info = args.info
+    error = args.error
+
+    # Output arguments used for program
+    info( args.argtxt + "\n")
+
+    info("Building the genome annotation index... %s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+    
+    form ={'force_tsv': True, 'loc': 'location(chr=column[0], left=column[1], right=column[2])', 'annot': 3}
+        
+    if args.genefile[0] == 'default' and args.tefile[0] == 'default':
+        if args.genome == 'mm':
+            chr_list = ['chr'+ str(i) for i in range(1,20) ] + [ 'chrX','chrY', 'chrM' ]
+            if args.mode == 'exclusive':
+                if not os.path.exists('mm10.exclusive.glb'): 
+                    logging.error("Did not find the annotation index mm10.exclusive.glb, you can download it from scTE github (www....) or either give the annotation with -te and -gene option \n" )
+                    sys.exit(1)
+                all_annot = 'mm10.exclusive.glb'
+                allelement = set(glload(all_annot)['annot'])
+            
+            elif args.mode == 'inclusive':
+                if not os.path.exists('mm10.inclusive.glb'):
+                    logging.error("Did not find the annotation index mm10.inclusive.glb, you can download it from scTE github (www....) or either give the annotation with -te and -gene option \n" )
+                    sys.exit(1)
+                all_annot = 'mm10.inclusive.glb'
+                allelement = set(glload(all_annot)['annot'])
+        
+        elif args.genome == 'hs':
+            chr_list = ['chr'+ str(i) for i in range(1,23) ] + [ 'chrX','chrY', 'chrM' ]
+            if args.mode == 'exclusive':
+                if not os.path.exists('hg38.exclusive.glb'): 
+                    logging.error("Did not find the annotation index hg38.exclusive.glb, you can download it from scTE github (www....) or either give the annotation with -te and -gene option \n" )
+                    sys.exit(1)
+                all_annot = 'hg38.exclusive.glb'
+                allelement = set(glload(all_annot)['annot'])
+            
+            elif args.mode == 'inclusive':
+                if not os.path.exists('hg38.inclusive.glb'): 
+                    logging.error("Did not find the annotation index hg38.inclusive.glb, you can download it from scTE github (www....) or either give the annotation with -te and -gene option \n")
+                    sys.exit(1)
+                all_annot = 'hg38.inclusive.glb'
+                allelement = set(glload(all_annot)['annot'])
+    else:
+        if args.genome == 'hs':
+            chr_list = ['chr'+ str(i) for i in range(1,23) ] + [ 'chrX','chrY', 'chrM' ]
+        elif args.genome == 'mm':
+            chr_list = ['chr'+ str(i) for i in range(1,20) ] + [ 'chrX','chrY', 'chrM' ]
+            
+        if not os.path.isfile(args.tefile[0]) :
+            logging.error("No such file: %s !\n" %(args.tefile[0]))
+            sys.exit(1)
+        if not os.path.isfile(args.genefile[0]) :
+            logging.error("No such file: %s !\n" % (args.genefile[0]))
+            sys.exit(1)
+        all_annot = annoGtf(genefile=args.genefile[0],tefile=args.tefile[0],mode=args.mode)
+        allelement = set(glload(all_annot)['annot'])
+    
+    info("Finished building the genome annotation index... %s \n"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+
+    info("Processing BAM/SAM files ...%s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+    
+    Bam2bed(args.input[0],args.out)
+
+    pool=multiprocessing.Pool(processes=args.thread)
+    partial_work = partial(splitChr,filename=args.out)
+    pool.map(partial_work,chr_list)
+    
+    info("Finished processing sample files %s \n"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+
+    if not os.path.exists('_tmp/output3'):
+        os.system('mkdir -p _tmp/output3')
+    
+    if not os.path.exists('_tmp/output3/_tmp'):
+        os.system('mkdir -p _tmp/output3/_tmp')
+    
+    info("Fetching from the annotation index... %s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+    
+    CRs = {}
+    for f in glob.glob('_tmp/output2/%s*.count.gz'%args.out):
+        o = gzip.open(f,'rb')
+        for l in o:
+            t = l.decode('ascii').strip().split('\t')
+            if t[0] not in CRs:
+                CRs[t[0]] = 0
+            CRs[t[0]] += int(t[1])
+        o.close()
+    
+    sortcb=sorted(CRs.items(),key=lambda item:item[1],reverse=True)
+    
+    if not args.countnumber:
+        mincounts = 2* args.genenumber
+    else:
+        mincounts = args.countnumber
+    
+    whitelist=[]
+    for n,k in enumerate(sortcb):
+        if k[1] < mincounts:
+            break
+        whitelist.append(k[0])
+    
+    pool = multiprocessing.Pool(processes=args.thread)
+    partial_work = partial(align, filename=args.out, annot=all_annot, whitelist=whitelist)
+    pool.map(partial_work,chr_list)
+    
+    if not os.path.exists('_tmp/output4'):
+        os.system('mkdir -p _tmp/output4')
+    os.system('zcat -f _tmp/output3/%s.*.bed.gz | gzip > _tmp/output4/%s.bed.gz'%(args.out,args.out))
+    
+    info("Done fetching... %s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+    
+    
+    info("Calculating expression... %s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+    
+    Countexpression(filename=args.out, allelement=allelement, genenumber=args.genenumber, cellnumber=args.cellnumber)
+    
+    info("Finished calculating expression %s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+    #os.system('rm -r _tmp')
+    
+    timeend=datetime.datetime.now()
+    info("Done with %s s\n"%timediff(timestart,timeend))
+
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        sys.stderr.write("User interrupt !\n")
+        sys.exit(0)
+
+
+
