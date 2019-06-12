@@ -1,7 +1,7 @@
 import os,sys,gzip,time
 import pybedtools
 import numpy as np
-from glbase3 import genelist, glload, location
+from miniglbase import genelist, glload, location
 
 def annotation(genefile,tefile,mode,genome):
 
@@ -11,7 +11,7 @@ def annotation(genefile,tefile,mode,genome):
         genefilename = 'mm10.Genes.exon'
     elif genome == 'hs':
         genefilename = 'hg38.Genes.exon'
-        
+
     raw={}
     if '.gz' in genefile:
         o=gzip.open(genefile,'rb')
@@ -32,7 +32,7 @@ def annotation(genefile,tefile,mode,genome):
                 raw[name] = []
             raw[name].append([chr,left,riht])
     o.close()
-    
+
     #clean the overlapping exons
     oh=gzip.open('%s.raw.bed.gz'%genefilename,'wt')
     for k in sorted(raw):
@@ -53,7 +53,7 @@ def annotation(genefile,tefile,mode,genome):
         for item in tmp:
             oh.write('%s\t%s\t%s\t%s\n'%(it[0],item[0],item[1],k))
     oh.close()
-    
+
     clean={}
     if '.gz' in genefile:
         o=gzip.open(genefile,'rb')
@@ -76,7 +76,7 @@ def annotation(genefile,tefile,mode,genome):
                 clean[name] = []
             clean[name].append([chr,left,riht])
     o.close()
-    
+
     oh=gzip.open('%s.clean.bed.gz'%genefilename,'wt')
     for k in sorted(clean):
         E=[]
@@ -96,42 +96,42 @@ def annotation(genefile,tefile,mode,genome):
         for item in tmp:
             oh.write('%s\t%s\t%s\t%s\n'%(it[0],item[0],item[1],k))
     oh.close()
-    
+
     if mode == 'exclusive':
         pybedtools.set_tempdir('./')
         gene_file = pybedtools.BedTool('%s.clean.bed.gz'%(genefilename))
-        
+
         te_file = pybedtools.BedTool(tefile)
-        
+
         a = te_file.intersect(gene_file,wa=True,v=True)
         oh=gzip.open('%s.exclusive.gz'%tefile,'wt')
         for n,k in enumerate(a):
             k = str(k).strip().split('\t')
             oh.write('%s\t%s\n'%(k[0],'\t'.join([ str(i) for i in k[1:]])))
         oh.close()
-    
+
         genes = genelist('%s.raw.bed.gz'%(genefilename), format=form, gzip=True)
         TEs = genelist('%s.exclusive.gz'%tefile, format=form, gzip=True)
 
         all_annot = genes + TEs
-        
+
         if genome == 'mm':
             all_annot.save('mm10.exclusive.glb')
             annot = 'mm10.exclusive.glb'
         elif genome == 'hs':
             all_annot.save('hg38.exclusive.glb')
             annot = 'hg38.exclusive.glb'
-    
+
     elif mode == 'inclusive':
         genes = genelist('%s.raw.bed.gz'%(genefilename), format=form, gzip=True)
         if tefile.endswith('.gz'):
             TEs = genelist(tefile, format=form, gzip=True)
         else:
             TEs = genelist(tefile, format=form)
-            
-        
+
+
         all_annot = genes + TEs
-        
+
         if genome == 'mm':
             all_annot.save('mm10.inclusive.glb')
             annot = 'mm10.inclusive.glb'
@@ -143,7 +143,7 @@ def annotation(genefile,tefile,mode,genome):
 
 # annoGtf(genefile= 'gencode.v30.annotation.gtf.gz', tefile= 'hg38.TEs.bed.gz',mode='exclusive',genome='hs')
 # annoGtf(genefile= 'gencode.v30.annotation.gtf.gz', tefile= 'hg38.TEs.bed.gz',mode='inclusive',genome='hs')
-# 
+#
 # annoGtf(genefile= 'gencode.vM21.annotation.gtf.gz', tefile= 'mm10.TEs.bed.gz',mode='exclusive',genome='mm')
 # annoGtf(genefile= 'gencode.vM21.annotation.gtf.gz', tefile= 'mm10.TEs.bed.gz',mode='inclusive',genome='mm')
 

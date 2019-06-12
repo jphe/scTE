@@ -1,14 +1,14 @@
 import os,sys,gzip,time
 import pybedtools
 import numpy as np
-from glbase3 import genelist, glload, location
+from .miniglbase import genelist, glload, location
 
 def annoGtf(genefile,tefile,mode):
-    
+
     genefilename = genefile.split('/')[-1:][0].replace('.gtf','')
     tefilename = tefile.split('/')[-1:][0].replace('.bed','')
     print(genefilename,tefilename)
-    
+
     if not os.path.exists('_tmp'):
         os.system('mkdir -p _tmp')
 
@@ -32,7 +32,7 @@ def annoGtf(genefile,tefile,mode):
                 raw[name] = []
             raw[name].append([chr,left,riht])
     o.close()
-    
+
     #clean the overlapping exons
     oh=gzip.open('_tmp/%s.raw.bed.gz'%genefilename,'wt')
     for k in sorted(raw):
@@ -53,7 +53,7 @@ def annoGtf(genefile,tefile,mode):
         for item in tmp:
             oh.write('%s\t%s\t%s\t%s\n'%(it[0],item[0],item[1],k))
     oh.close()
-    
+
     clean={}
     if '.gz' in genefile:
         o = gzip.open(genefile,'rb')
@@ -76,7 +76,7 @@ def annoGtf(genefile,tefile,mode):
                 clean[name] = []
             clean[name].append([chr,left,riht])
     o.close()
-    
+
     oh=gzip.open('_tmp/%s.clean.bed.gz'%genefilename,'wt')
     for k in sorted(clean):
         E=[]
@@ -96,29 +96,29 @@ def annoGtf(genefile,tefile,mode):
         for item in tmp:
             oh.write('%s\t%s\t%s\t%s\n'%(it[0],item[0],item[1],k))
     oh.close()
-    
+
     te_file = pybedtools.BedTool(tefile)
-            
+
     if mode == 'exclusive':
         pybedtools.set_tempdir('_tmp')
         gene_file = pybedtools.BedTool('_tmp/%s.clean.bed.gz'%genefilename)
-        
+
         a = te_file.intersect(gene_file,wa=True,v=True)
-        
+
         oh=gzip.open('_tmp/%s.exclusive.gz'%tefilename,'wt')
         for n,k in enumerate(a):
             k = str(k).strip().split('\t')
             oh.write('%s\t%s\n'%(k[0],'\t'.join([ str(i) for i in k[1:]])))
         oh.close()
-    
+
         form ={'force_tsv': True, 'loc': 'location(chr=column[0], left=column[1], right=column[2])', 'annot': 3}
         genes = genelist('_tmp/%s.raw.bed.gz'%(genefilename), format=form, gzip=True)
         TEs = genelist('_tmp/%s.exclusive.gz'%tefilename, format=form, gzip=True)
-        
+
         all_annot = genes + TEs
         all_annot.save('_tmp/custome.exclusive.glb')
         annot = '_tmp/custome.exclusive.glb'
-    
+
     elif mode == 'inclusive':
         genes = genelist('_tmp/%s.raw.bed.gz'%(genefilename), format=form, gzip=True)
         if tefilename.endswith('.gz'):
@@ -129,7 +129,7 @@ def annoGtf(genefile,tefile,mode):
         all_annot = genes + TEs
         all_annot.save('_tmp/custome.inclusive.glb')
         annot = '_tmp/custome.inclusive.glb'
-    
+
     os.system('rm _tmp/*gz')
     return annot
 
