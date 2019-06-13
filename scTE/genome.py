@@ -30,8 +30,8 @@ def cleanexon(genefilename, exons):
     oh.close()
 
 def genomeIndex(genome, mode, geneurls, teurls):
-#     os.system('wget -c %s'%geneurls)
-#     os.system('wget -c %s'%teurls)
+    os.system('wget -c %s'%geneurls)
+    os.system('wget -c %s'%teurls)
     
     geneform ={'force_tsv': True, 'loc': 'location(chr=column[0], left=column[1], right=column[2])', 'annot': 3}
     teform ={'force_tsv': True, 'loc': 'location(chr=column[5], left=column[6], right=column[7])', 'annot': 10}
