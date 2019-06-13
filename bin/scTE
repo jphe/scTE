@@ -1,0 +1,127 @@
+#!/usr/bin/env python
+import multiprocessing
+from functools import partial
+import logging
+import os, sys, glob, datetime, time, gzip
+import argparse
+import collections
+from math import log
+sys.path.append('../')
+# from scTE.miniglbase import genelist, glload, location
+from glbase3 import genelist, glload, location
+from scTE.annotation import annoGtf
+from scTE.base import *
+
+def prepare_parser():
+    desc = "hahaha..."
+
+    exmp = "Example: scTE <-i scRNA.sorted.bam> <-t TEs.bed.gz> <-gene Genes.gtf.gz> <-g mm > <-o out> [--min_genes 200] [--min_counts 400] [-p -10]"
+
+    parser = argparse.ArgumentParser(prog='scTE',description=desc, epilog=exmp)
+
+    parser.add_argument('-i','--input', dest='input', type=str, nargs='+', required=True,
+                        help='Input file: BAM/SAM file outputed by CellRanger or STARsolo, the file must be sored by chromosome position')
+
+    parser.add_argument('-f','--format', metavar='input file format', dest='format', type=str, nargs='?', default='BAM', choices=['BAM','SAM'],
+                        help='Input file format: BAM or SAM. DEFAULT: BAM')
+
+    parser.add_argument('-te', dest='tefile',nargs='+',
+                        help='Six columns bed file for transposable elements annotation. Put "default" for use scTE pre-build annotation index (need -gene = "default")')
+
+    parser.add_argument('-gene', dest='genefile',nargs='+',
+                        help='Gtf file for genes annotation. Put "default" for use scTE pre-build annotation index (need -te = "default"). For the scTE pre-build annotation index can bed download from https://github.com/jphe/something')
+
+    parser.add_argument('--min_genes', dest='genenumber',metavar='INT', type=int,default=200,
+                        help='Minimum number of genes expressed required for a cell to pass filtering. Default: 200')
+
+    parser.add_argument('--min_counts', dest='countnumber',metavar='INT', type=int,
+                        help='Minimum number of counts required for a cell to pass filtering. Default: 2*min_genes')
+
+    parser.add_argument('--expect-cells', dest='cellnumber',metavar='INT', type=int,  default=10000,
+                        help='Expected number of cells. Default: 10000')
+
+    parser.add_argument('-g','--genome', metavar='genome', dest='genome',type=str, nargs='?', default='mm', choices=['hs','mm',],required=True,
+                        help='"hs" for human, "mm" for mouse, Default: mm')
+
+    parser.add_argument('-m','--mode', metavar='TEs counting mode', dest='mode', nargs='?', type=str,
+                        default='exclusive', choices=['inclusive','exclusive'],
+                        help='How to count TEs expression: inclusive (inclued all reads that can map to TEs), or exclusive (exclued the reads that can map to protein coding genes and lncRNAs).\
+                        DEFAULT: exclusive')
+
+    parser.add_argument('-o','--out', dest='out', nargs='?', required=True, help='Output file prefix')
+
+    parser.add_argument('-p','--thread', metavar='INT', dest='thread', type=int, default=1,
+                        help='Number of threads to use, Default: 1')
+
+    parser.add_argument('-v','--version', action='version', version='%(prog)s 1.0')
+
+    return parser
+
+def main():
+    """Start scTEs......parse options......"""
+
+    timestart=datetime.datetime.now()
+    args=read_opts(prepare_parser())
+    
+    info = args.info
+    error = args.error
+
+    assert sys.version_info >= (3, 6), 'Python >=3.6 is required'
+
+    info( args.argtxt + "\n")
+
+    outname = args.out.split('/')[-1:][0]
+    
+    info("Building the genome annotation index... %s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+    
+    a = getanno(filename=outname, genefile=args.genefile[0],tefile=args.tefile[0], genome=args.genome, mode=args.mode)
+    allelement, chr_list, all_annot = a[0], a[1], a[2]
+    
+    info("Finished building the genome annotation index... %s \n"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+
+
+    info("Processing BAM/SAM files ...%s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+
+    Bam2bed(args.input[0],outname)
+
+    pool=multiprocessing.Pool(processes=args.thread)
+    partial_work = partial(splitChr,filename=outname)
+    pool.map(partial_work,chr_list)
+
+    info("Finished processing sample files %s \n"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+
+
+    info("Fetching from the annotation index... %s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+    
+    whitelist = filterCRs(filename=outname,genenumber=args.genenumber, countnumber=args.countnumber)
+
+    pool = multiprocessing.Pool(processes=args.thread)
+    partial_work = partial(align, filename=outname, annot=all_annot, whitelist=whitelist)
+    pool.map(partial_work,chr_list)
+
+    if not os.path.exists('%s_scTEtmp/o4'%outname):
+        os.system('mkdir -p %s_scTEtmp/o4'%outname)
+    os.system('zcat -f %s_scTEtmp/o3/%s.*.bed.gz | gzip > %s_scTEtmp/o4/%s.bed.gz'%(outname,outname,outname,outname))
+
+    info("Done fetching... %s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+
+
+    info("Calculating expression... %s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+
+    Countexpression(filename=args.out, allelement=allelement, genenumber=args.genenumber, cellnumber=args.cellnumber)
+
+    info("Finished calculating expression %s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+
+
+    timeend=datetime.datetime.now()
+    info("Done with %s s\n"%timediff(timestart,timeend))
+
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        sys.stderr.write("User interrupt !\n")
+        sys.exit(0)
+
+
+
