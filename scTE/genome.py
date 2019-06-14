@@ -29,6 +29,7 @@ def cleanexon(exons):
     return tmp
 
 def genomeIndex(genome, mode, geneurls, teurls):
+    print(mode)
     if not os.path.exists('_tmp'):
         os.system('mkdir -p _tmp')
 
@@ -166,6 +167,7 @@ def genomeIndex(genome, mode, geneurls, teurls):
     elif mode == 'inclusive':
         genes = genelist() # genelist('_tmp/%s.raw.bed.gz'%(genefilename), format=geneform, gzip=True)
         genes.load_list(raw)
+
         if tefilename.endswith('.gz'):
             TEs = genelist(tefilename, format=teform, gzip=True)
         else:

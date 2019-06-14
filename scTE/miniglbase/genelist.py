@@ -267,29 +267,8 @@ class genelist(_base_genelist): # gets a special uppercase for some dodgy code i
         self.fullfilename = filename
         self.name = self.filename.split(".")[0]
 
-        # decide whether to respect the force_tsv arg.
-        if not format:
-            if "force_tsv" in kargs and kargs["force_tsv"]:
-                format = sniffer_tsv
-            else:
-                format = sniffer
-
-        if "debug" in format and format["debug"]:
-            print("--------")
-            print("DEBUG load:")
-            self._loadCSV(filename=self.fullfilename, format=format, **kargs)
-        else:
-            try:
-                self._loadCSV(filename=self.fullfilename, format=format, **kargs)
-            except Exception:
-                try: # try again, guessing it might be a tsv
-                    config.log.warning("Failed to load as a 'csv'. Try to load as a 'tsv' file")
-                    format["dialect"] = csv.excel_tab
-                    self._loadCSV(filename=self.fullfilename, format=format, **kargs)
-                except Exception: # oh dear. Die.
-                    if self.__deathline:
-                        config.log.error("Died on line: '%s'" % self.__deathline)
-                    assert False, "'%s' file does not fit the format specifier"
+        # No error wrtapping;
+        self._loadCSV(filename=self.fullfilename, format=format, **kargs)
 
     def _loadCSV(self, **kargs):
         """
@@ -332,28 +311,7 @@ class genelist(_base_genelist): # gets a special uppercase for some dodgy code i
         else:
             skiptill = "Done" # This is done as truth testing fails as format["skiptill"] != None
 
-        if "sniffer" in format:
-            # I need to construct my own format
-            format = {}
-            for top_line in reader:
-                for index, key in enumerate(top_line): # get all the potential keys.
-                    format[key] = index
-                skiplines = -1 # if the sniffer is used then when it gets to the below
-                # index will = 0 = skiplines causing the first line to be missed.
-                break
-
         debug_line = 0
-
-        # sanitise format[key] data for security.
-        newf = {}
-        for k in format:
-            if isinstance(format[k], dict) and "code" in format[k]:
-                newf[k] = {"code": format[k]["code"].replace("__", "").replace(" sys,", "")} # Some security suggestions:, {"__builtins__":None, column, location}, {})
-            elif isinstance(format[k], str) and "location" in format[k]:
-                newf[k] = format[k].replace("__", "").replace(" sys,", "")
-            else:
-                newf[k] = format[k]
-        format = newf
 
         for index, column in enumerate(reader):
             # This is cryptically called column, when it is actually row.\
@@ -366,27 +324,8 @@ class genelist(_base_genelist): # gets a special uppercase for some dodgy code i
             if not column: # if row is completely empty, so just omit.
                 continue
 
-            if index <= skiplines or skiptill != "Done":
-                if column and True in [skiptill in item for item in column]:
-                    skiptill = "Done"
-                continue
-
-            if "__column_must_be_used" in format and format["__column_must_be_used"]:
-                if not column[format["__column_must_be_used"]]:
-                    continue # Omit data when this particular column is blank
-
-            if "endwith" in format and format["endwith"]:
-                if True in [format["endwith"] in item for item in column]:
-                    break
-
-            if "debug" in format and format["debug"]:
-                debug_line += 1
-                print("%s:'%s'" % (index, column))
-                if isinstance(format["debug"], int) and debug_line > format["debug"]:
-                    break # If an integer, collect that many items.
-
-                # passed all the tests
-                temp_data.append(self._processKey(format, column))
+            # passed all the tests
+            temp_data.append(self._processKey(format, column))
 
             #print temp_data[-1] # tells you what got loaded onto the list.
         oh.close()
