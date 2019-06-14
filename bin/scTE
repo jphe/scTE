@@ -6,7 +6,7 @@ import os, sys, glob, datetime, time, gzip
 import argparse
 import collections
 from math import log
-sys.path.append('../')
+sys.path.append(os.path.join(os.path.split(sys.argv[0])[0], '../'))
 # from scTE.miniglbase import genelist, glload, location
 from glbase3 import genelist, glload, location
 from scTE.annotation import annoGtf
@@ -62,7 +62,7 @@ def main():
 
     timestart=datetime.datetime.now()
     args=read_opts(prepare_parser())
-    
+
     info = args.info
     error = args.error
 
@@ -71,12 +71,12 @@ def main():
     info( args.argtxt + "\n")
 
     outname = args.out.split('/')[-1:][0]
-    
+
     info("Building the genome annotation index... %s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
-    
+
     a = getanno(filename=outname, genefile=args.genefile[0],tefile=args.tefile[0], genome=args.genome, mode=args.mode)
     allelement, chr_list, all_annot = a[0], a[1], a[2]
-    
+
     info("Finished building the genome annotation index... %s \n"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
 
@@ -92,7 +92,7 @@ def main():
 
 
     info("Fetching from the annotation index... %s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
-    
+
     whitelist = filterCRs(filename=outname,genenumber=args.genenumber, countnumber=args.countnumber)
 
     pool = multiprocessing.Pool(processes=args.thread)
