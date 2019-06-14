@@ -33,8 +33,8 @@ def genomeIndex(genome, mode, geneurls, teurls):
     if not os.path.exists('_tmp'):
         os.system('mkdir -p _tmp')
 
-    #os.system('wget -c %s'%geneurls)
-    #os.system('wget -c %s'%teurls)
+    os.system('wget -c %s'%geneurls)
+    os.system('wget -c %s'%teurls)
 
     geneform ={'force_tsv': True, 'loc': 'location(chr=column[0], left=column[1], right=column[2])', 'annot': 3}
     teform ={'force_tsv': True, 'loc': 'location(chr=column[5], left=column[6], right=column[7])', 'annot': 10}
@@ -72,8 +72,6 @@ def genomeIndex(genome, mode, geneurls, teurls):
                 clean[name] = []
             clean[name].append([chr,left,riht])
 
-        if idx > 1000:
-            break
     o.close()
 
     raw = cleanexon(raw) # '%s.raw' % genefilename, raw)
@@ -81,14 +79,14 @@ def genomeIndex(genome, mode, geneurls, teurls):
 
     if mode == 'exclusive':
         gene = {}
-        #cleangl # o = gzip.open('_tmp/%s.clean.bed.gz'%(genefilename),'rb')
+        #clean # o = gzip.open('_tmp/%s.clean.bed.gz'%(genefilename),'rb')
         for l in clean:
             #t = l.decode('ascii').strip().split('\t')
             chr = l['loc'].loc['chr'] # t[0]
             if chr not in chr_list:
                 continue
-            left = l['loc'].loc['left']
-            rite = l['loc'].loc['right']
+            left = l['loc']['left']
+            rite = l['loc']['right']
 
             left_buck = ((left-1)//10000) * 10000
             right_buck = (rite//10000) * 10000
@@ -142,9 +140,6 @@ def genomeIndex(genome, mode, geneurls, teurls):
                         break
                 if i == 1:
                     noverlap.append({'loc': location(chr=chr, left=left, right=rite), 'annot': t[10]})
-
-            if n > 1000:
-                break
 
         TEs = genelist()
         TEs.load_list(noverlap)
