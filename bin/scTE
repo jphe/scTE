@@ -7,8 +7,8 @@ import argparse
 import collections
 from math import log
 sys.path.append(os.path.join(os.path.split(sys.argv[0])[0], '../'))
-# from scTE.miniglbase import genelist, glload, location
-from glbase3 import genelist, glload, location
+from scTE.miniglbase import genelist, glload, location
+#from glbase3 import genelist, glload, location
 from scTE.annotation import annoGtf
 from scTE.base import *
 

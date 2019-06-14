@@ -19,7 +19,7 @@ from .location import location
 from .base_genelist import _base_genelist
 #from .format import sniffer, sniffer_tsv
 
-class Genelist(_base_genelist): # gets a special uppercase for some dodgy code in map() I don't dare refactor.
+class genelist(_base_genelist): # gets a special uppercase for some dodgy code in map() I don't dare refactor.
     """
     **Purpose**
         This is a class container for any arrangement of heterogenous data.
@@ -140,13 +140,11 @@ class Genelist(_base_genelist): # gets a special uppercase for some dodgy code i
         self.linearData = []
         self.dataByChr = None # this is private, use get by loc.
         self.debug = False
-        self.draw = draw(self)
         self.name = "Generic List"
         self.metadata = {} # container for various metadata's to extract figures from.
         self.__deathline = None # Error reporting in load_CSV()
         self.__deathindx = None
 
-        format = sniffer
         if "format" in kargs:
             format = kargs["format"] # I expect a filename = is coming.
 
@@ -291,7 +289,7 @@ class Genelist(_base_genelist): # gets a special uppercase for some dodgy code i
                 except Exception: # oh dear. Die.
                     if self.__deathline:
                         config.log.error("Died on line: '%s'" % self.__deathline)
-                    raise UnRecognisedCSVFormatError("'%s' appears mangled, the file does not fit the format specifier" % self.fullfilename, self.fullfilename, format)
+                    assert False, "'%s' file does not fit the format specifier"
 
     def _loadCSV(self, **kargs):
         """
@@ -386,11 +384,6 @@ class Genelist(_base_genelist): # gets a special uppercase for some dodgy code i
                 print("%s:'%s'" % (index, column))
                 if isinstance(format["debug"], int) and debug_line > format["debug"]:
                     break # If an integer, collect that many items.
-
-            if column[0] not in typical_headers:
-                if "commentlines" in format and format["commentlines"]:
-                    if column[0][0] == format["commentlines"]:
-                        continue
 
                 # passed all the tests
                 temp_data.append(self._processKey(format, column))
@@ -649,11 +642,6 @@ class Genelist(_base_genelist): # gets a special uppercase for some dodgy code i
             saves a CSV representation of the geneList.
         """
         assert filename, "No filename specified"
-
-        valig_args = ["filename", "key_order", "tsv", "no_header"]
-        for k in kargs:
-            if k not in valig_args:
-                raise ArgumentError(self.saveCSV, k)
 
         oh = open(filename, "w")
         if not self.linearData: # data is empty, fail graciously.
@@ -1913,10 +1901,7 @@ class Genelist(_base_genelist): # gets a special uppercase for some dodgy code i
         except Exception:
             raise AssertionError("Type Error, the list of items appears not to contain a dictionary item")
 
-        #try:
-        self.linearData = utils.qdeepcopy(list_to_load)
-        #except Exception:
-        #    self.linearData = copy.deepcopy(list_to_load)
+        self.linearData = pickle.loads(pickle.dumps(list_to_load, -1)) # qdeepcopy()
 
         # See if we have a name:
         if name:

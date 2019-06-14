@@ -1,14 +1,14 @@
 import os,sys,gzip,time
 import numpy as np
-# from .miniglbase import genelist, glload, location
-from glbase3 import genelist, glload, location
+from miniglbase import genelist, glload, location
+#from glbase3 import genelist, glload, location
 
 chr_list = ['chr'+ str(i) for i in range(1,50) ] + [ 'chrX','chrY', 'chrM' ]
 
 def cleanexon(genefilename, exons):
     if not os.path.exists('_tmp'):
         os.system('mkdir -p _tmp')
-    
+
     oh=gzip.open('_tmp/%s.bed.gz'%(genefilename),'wt')
     for k in sorted(exons):
         E=[]
@@ -32,10 +32,10 @@ def cleanexon(genefilename, exons):
 def genomeIndex(genome, mode, geneurls, teurls):
     os.system('wget -c %s'%geneurls)
     os.system('wget -c %s'%teurls)
-    
+
     geneform ={'force_tsv': True, 'loc': 'location(chr=column[0], left=column[1], right=column[2])', 'annot': 3}
     teform ={'force_tsv': True, 'loc': 'location(chr=column[5], left=column[6], right=column[7])', 'annot': 10}
-    
+
     genefilename = geneurls.split('/')[-1:][0]
     tefilename = teurls.split('/')[-1:][0]
     print(genefilename,tefilename)
@@ -57,11 +57,11 @@ def genomeIndex(genome, mode, geneurls, teurls):
             left = int(t[3])
             riht =  int(t[4])
             name=t[8].split('gene_name "')[1].split('";')[0]
-            
+
             if name not in raw:
                 raw[name] = []
             raw[name].append([chr,left,riht])
-            
+
             if 'protein_coding' not in l and 'lincRNA' not in l:
                 continue
             if name not in clean:
@@ -71,9 +71,9 @@ def genomeIndex(genome, mode, geneurls, teurls):
 
     cleanexon('%s.raw'%genefilename,raw)
     cleanexon('%s.clean'%genefilename,clean)
-    
+
     if mode == 'exclusive':
-        gene ={}
+        gene = {}
         o = gzip.open('_tmp/%s.clean.bed.gz'%(genefilename),'rb')
         for l in o:
             t = l.decode('ascii').strip().split('\t')
@@ -82,44 +82,44 @@ def genomeIndex(genome, mode, geneurls, teurls):
                 continue
             left = int(t[1])
             rite = int(t[2])
-            
-            left_buck = int((left-1)/10000) * 10000
-            right_buck = int((rite)/10000) * 10000
+
+            left_buck = ((left-1)//10000) * 10000
+            right_buck = (rite//10000) * 10000
             buckets_reqd = range(left_buck, right_buck+10000, 10000)
-            
+
             if chr not in gene:
                 gene[chr] = {}
-            
+
             if buckets_reqd:
                 for buck in buckets_reqd:
                     if buck not in gene[chr]:
                         gene[chr][buck] = []
                     gene[chr][buck].append([left, rite])
         o.close()
-        
+
         noverlap = []
         print(tefilename)
         if '.gz' in tefilename:
-            o = gzip.open(tefilename,'rb')
+            o = gzip.open(tefilename,'rt')
         else:
             o = open(tefilename,'rU')
-        
+
         for n,l in enumerate(o):
-            if '.gz' in tefilename:
-                l = l.decode('ascii')
+            #if '.gz' in tefilename:
+            #    l = l
             t = l.strip().split('\t')
             chr = t[5]
-            
+
             if chr not in chr_list:
                 continue
-            
+
             left = int(t[6])
             rite = int(t[7])
-            
-            left_buck = int((left-1)/10000) * 10000
-            right_buck = int((rite)/10000) * 10000
-            buckets_reqd = list(range(left_buck, right_buck+10000, 10000))
-            
+
+            left_buck = ((left-1)//10000) * 10000
+            right_buck = (rite//10000) * 10000
+            buckets_reqd = range(left_buck, right_buck+10000, 10000)
+
             if buckets_reqd:
                 i = 1
                 for buck in buckets_reqd:
@@ -133,15 +133,18 @@ def genomeIndex(genome, mode, geneurls, teurls):
                         if i == 0:
                             break
                 if i == 1:
-                    noverlap.append('%s\t%s\t%s\t%s\n'%(chr,left,rite,t[10]))
-        
-        oh = gzip.open('_tmp/%s.exclusive.gz'%(tefilename),'wt')
-        for k in noverlap:
-            oh.write(k)
-        oh.close()
+                    noverlap.append({'loc': location(chr=chr, left=left, right=rite), 'annot': t[10]})
+
+        TEs = genelist()
+        TEs.load_list(noverlap)
+
+        #oh = gzip.open('_tmp/%s.exclusive.gz'%(tefilename),'wt')
+        #for k in noverlap:
+        #    oh.write(k)
+        #oh.close()
 
         genes = genelist('_tmp/%s.raw.bed.gz'%(genefilename), format=geneform, gzip=True)
-        TEs = genelist('_tmp/%s.exclusive.gz'%(tefilename), format=geneform, gzip=True)
+        #TEs = genelist('_tmp/%s.exclusive.gz'%(tefilename), format=geneform, gzip=True)
 
         all_annot = genes + TEs
         if genome == 'mm':
@@ -156,12 +159,12 @@ def genomeIndex(genome, mode, geneurls, teurls):
         else:
             TEs = genelist(tefilename, format=teform)
         all_annot = genes + TEs
-        
+
         if genome == 'mm':
             all_annot.save('mm10.inclusive.glb')
         elif genome == 'hs':
             all_annot.save('hg38.inclusive.glb')
-    
+
 #     os.system('rm -r _tmp')
 
 genomeIndex('mm','exclusive',

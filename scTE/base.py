@@ -5,8 +5,7 @@ import logging
 import os, sys, glob, datetime, time, gzip
 import collections
 from math import log
-# from scTE.miniglbase import genelist, glload, location
-from glbase3 import genelist, glload, location
+from scTE.miniglbase import genelist, glload, location
 from scTE.annotation import annoGtf
 
 def read_opts(parser):
@@ -43,7 +42,7 @@ def read_opts(parser):
 
 def getanno(filename, genefile, tefile, genome, mode):
     form ={'force_tsv': True, 'loc': 'location(chr=column[0], left=column[1], right=column[2])', 'annot': 3}
-    
+
     if genefile == 'default' and tefile == 'default':
         if genome == 'mm':
             chr_list = ['chr'+ str(i) for i in range(1,20) ] + [ 'chrX','chrY', 'chrM' ]
@@ -81,7 +80,7 @@ def getanno(filename, genefile, tefile, genome, mode):
             chr_list = ['chr'+ str(i) for i in range(1,23) ] + [ 'chrX','chrY', 'chrM' ]
         elif genome == 'mm':
             chr_list = ['chr'+ str(i) for i in range(1,20) ] + [ 'chrX','chrY', 'chrM' ]
-        
+
         if not os.path.isfile(tefile) :
             logging.error("No such file: %s !\n" %(tefile))
             sys.exit(1)
@@ -90,7 +89,7 @@ def getanno(filename, genefile, tefile, genome, mode):
             sys.exit(1)
         all_annot = annoGtf(filename, genefile=genefile, tefile=tefile, mode=mode)
         allelement = set(glload(all_annot)['annot'])
-    
+
     return(allelement,chr_list,all_annot)
 
 def Bam2bed(filename,out):
@@ -160,7 +159,7 @@ def align(chr, filename, annot, whitelist):
             continue
 
         loc = location(chr=chrom, left=left, right=rite)
-        left_buck = int((left-1)/10000) * 10000 
+        left_buck = int((left-1)/10000) * 10000
         right_buck = int((rite)/10000) * 10000
         buckets_reqd = range(left_buck, right_buck+10000, 10000)
 
@@ -276,7 +275,7 @@ def filterCRs(filename,genenumber,countnumber):
         if k[1] < mincounts:
             break
         whitelist.append(k[0])
-    
+
     return whitelist
 
 def timediff(timestart, timestop):

@@ -43,14 +43,12 @@ except Exception:
 # If I can get config and errors then these are probably available too.
 
 from .utils import glload
-#from .location import location
-#from .genelist import genelist
-#from .progress import progressbar
-#from . import utils
+from .location import location
+from .genelist import genelist
 
 # export all of the libraries, methods and helpers.
-#__all__ = ["genelist",
-#            'config',
-#            "location",
-#            "glload",
-#            ]
+__all__ = ["genelist",
+            'config',
+            "location",
+            "glload",
+            ]
