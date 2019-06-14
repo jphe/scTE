@@ -1295,6 +1295,12 @@ class genelist(_base_genelist): # gets a special uppercase for some dodgy code i
         config.log.info("pointRight genelist %s" % (self.name))
         return(newl)
 
+    def _collectIdenticalKeys(self, gene_list):
+        """
+        (Internal)
+        What it says, returns a list of valid keys in common between this list and gene_list
+        """
+        return(list(set(self.keys()) & set(gene_list.keys())))
 
     def removeDuplicatesByLoc(self, mode, key="loc", delta=200):
         """

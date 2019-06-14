@@ -3,6 +3,7 @@ import copy, pickle, re
 from shlex import split as shlexsplit
 
 from . import config
+from .location import location
 
 class _base_genelist:
     def __init__(self):
@@ -236,35 +237,12 @@ class _base_genelist:
 
         d = {}
         for key in format:
-            if not (key in ignorekeys): # ignore these tags
-                #if not key in d:
-                #    d[key] = {}
-                if '__ignore_empty_columns' in format and format['__ignore_empty_columns']:
-                    # check the column exists, if not, pad in an empty value
-                    try:
-                        column[format[key]]
-                    except IndexError:
-                        d[key] = '' # Better than None for downstream compatability
-                        continue
+            if isinstance(format[key], str) and "location" in format[key]:
+                # locations are very common, add support for them out of the box:
+                d[key] = eval(format[key])
+            else:
+                d[key] = self._guessDataType(column[format[key]])
 
-                if isinstance(format[key], dict) and "code" in format[key]:
-                    # a code block insertion goes here - any valid lib and one line python code fragment
-                    # store it as a dict with the key "code"
-                    d[key] = eval(format[key]["code"])
-                elif isinstance(format[key], str) and "location" in format[key]:
-                    # locations are very common, add support for them out of the box:
-                    d[key] = eval(format[key])
-                else:
-                    d[key] = self._guessDataType(column[format[key]])
-            elif key == "gtf_decorators": # special exceptions for gtf files
-                gtf = column[format["gtf_decorators"]].strip()
-                for item in gtf.split(";"):
-                    if item:
-                        item = item.strip()
-                        ss = shlexsplit(item)
-                        key = ss[0]
-                        value = ss[1].strip('"')
-                        d[key] = self._guessDataType(value)
         return(d)
 
     def save(self, filename=None, compressed=False):
