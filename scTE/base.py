@@ -44,7 +44,7 @@ def getanno(filename, genefile, tefile, genome, mode):
     form ={'force_tsv': True, 'loc': 'location(chr=column[0], left=column[1], right=column[2])', 'annot': 3}
 
     if genefile == 'default' and tefile == 'default':
-        if genome == 'mm':
+        if genome == 'mm10':
             chr_list = ['chr'+ str(i) for i in range(1,20) ] + [ 'chrX','chrY', 'chrM' ]
             if mode == 'exclusive':
                 if not os.path.exists('mm10.exclusive.glb'):
@@ -60,7 +60,7 @@ def getanno(filename, genefile, tefile, genome, mode):
                 all_annot = 'mm10.inclusive.glb'
                 allelement = set(glload(all_annot)['annot'])
 
-        elif genome == 'hs':
+        elif genome == 'hg38':
             chr_list = ['chr'+ str(i) for i in range(1,23) ] + [ 'chrX','chrY', 'chrM' ]
             if mode == 'exclusive':
                 if not os.path.exists('hg38.exclusive.glb'):
@@ -76,17 +76,20 @@ def getanno(filename, genefile, tefile, genome, mode):
                 all_annot = 'hg38.inclusive.glb'
                 allelement = set(glload(all_annot)['annot'])
     else:
-        if genome == 'hs':
+        if genome == 'hg38':
             chr_list = ['chr'+ str(i) for i in range(1,23) ] + [ 'chrX','chrY', 'chrM' ]
-        elif genome == 'mm':
+        
+        elif genome == 'mm10':
             chr_list = ['chr'+ str(i) for i in range(1,20) ] + [ 'chrX','chrY', 'chrM' ]
 
         if not os.path.isfile(tefile) :
             logging.error("No such file: %s !\n" %(tefile))
             sys.exit(1)
+        
         if not os.path.isfile(genefile) :
             logging.error("No such file: %s !\n" % (genefile))
             sys.exit(1)
+        
         all_annot = annoGtf(filename, genefile=genefile, tefile=tefile, mode=mode)
         allelement = set(glload(all_annot)['annot'])
 
