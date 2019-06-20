@@ -1,14 +1,13 @@
 import os,sys,gzip,time
 import numpy as np
-# from .miniglbase import genelist, glload, location
-from glbase3 import genelist, glload, location
+from scTE.miniglbase import genelist, glload, location
 
 form ={'force_tsv': True, 'loc': 'location(chr=column[0], left=column[1], right=column[2])', 'annot': 3}
 
 def cleanexon(filename, genefilename, exons):
     if not os.path.exists('%s_scTEtmp/index'%filename):
         os.system('mkdir -p %s_scTEtmp/index'%filename)
-    
+
     oh=gzip.open('%s_scTEtmp/index/%s.bed.gz'%(filename,genefilename),'wt')
     for k in sorted(exons):
         E=[]
@@ -51,11 +50,11 @@ def annoGtf(filename, genefile, tefile, mode):
             left = int(t[3])
             riht =  int(t[4])
             name=t[8].split('gene_name "')[1].split('";')[0]
-            
+
             if name not in raw:
                 raw[name] = []
             raw[name].append([chr,left,riht])
-            
+
             if 'protein_coding' not in l and 'lincRNA' not in l:
                 continue
             if name not in clean:
@@ -65,7 +64,7 @@ def annoGtf(filename, genefile, tefile, mode):
 
     cleanexon(filename,'%s.raw'%genefilename,raw)
     cleanexon(filename,'%s.clean'%genefilename,clean)
-    
+
     if mode == 'exclusive':
         gene ={}
         o = gzip.open('%s_scTEtmp/index/%s.clean.bed.gz'%(filename,genefilename),'rb')
@@ -74,21 +73,21 @@ def annoGtf(filename, genefile, tefile, mode):
             chr = t[0]
             left = int(t[1])
             rite = int(t[2])
-            
+
             left_buck = int((left-1)/10000) * 10000
             right_buck = int((rite)/10000) * 10000
             buckets_reqd = range(left_buck, right_buck+10000, 10000)
-            
+
             if chr not in gene:
                 gene[chr] = {}
-            
+
             if buckets_reqd:
                 for buck in buckets_reqd:
                     if buck not in gene[chr]:
                         gene[chr][buck] = []
                     gene[chr][buck].append([left, rite])
         o.close()
-        
+
         noverlap = []
         if '.gz' in tefile:
             o = gzip.open(tefile,'rb')
@@ -101,11 +100,11 @@ def annoGtf(filename, genefile, tefile, mode):
             chr = t[0]
             left = int(t[1])
             rite = int(t[2])
-            
+
             left_buck = int((left-1)/10000) * 10000
             right_buck = int((rite)/10000) * 10000
             buckets_reqd = range(left_buck, right_buck+10000, 10000)
-            
+
             if buckets_reqd:
                 i = 1
                 for buck in buckets_reqd:
@@ -120,7 +119,7 @@ def annoGtf(filename, genefile, tefile, mode):
                             break
                 if i == 1:
                     noverlap.append('%s\t%s\t%s\t%s\n'%(chr,left,rite,t[3]))
-        
+
         oh = gzip.open('%s_scTEtmp/index/%s.exclusive.gz'%(filename, tefilename),'wt')
         for k in noverlap:
             oh.write(k)
