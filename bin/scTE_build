@@ -41,36 +41,22 @@ def cleanexon(exons):
         for id in range(0,len(E)-1):
             if E[id+1]-E[id] >1:
                 en=id
-                tmp.append({'loc': location(chr=it[0], left=E[s], right=E[en]), 'annot': k}) #[E[s],E[en]])
+                tmp.append({'loc': location(chr=it[0], left=E[s], right=E[en]), 'annot': k}) 
                 s=en+1
-        tmp.append({'loc': location(chr=it[0], left=E[s], right=E[id+1]), 'annot': k}) # [E[s],E[id+1]])
+        tmp.append({'loc': location(chr=it[0], left=E[s], right=E[id+1]), 'annot': k})
 
     return tmp
 
-def genomeIndex(genome, mode, geneurls, teurls):
-
-    os.system('wget -c %s'%geneurls)
-    os.system('wget -c %s'%teurls)
-    
-    #Download twice for double check, as sometines wget may stops on the way
-    os.system('wget -c %s'%geneurls)
-    os.system('wget -c %s'%teurls)
-
-    geneform ={'force_tsv': True, 'loc': 'location(chr=column[0], left=column[1], right=column[2])', 'annot': 3}
-    teform ={'force_tsv': True, 'loc': 'location(chr=column[5], left=column[6], right=column[7])', 'annot': 10}
-
-    genefilename = geneurls.split('/')[-1:][0]
-    tefilename = teurls.split('/')[-1:][0]
-
+def readGtf(filename):
     raw = {}
     clean = {}
-    if '.gz' in genefilename:
-        o = gzip.open(genefilename,'rb')
+    if '.gz' in filename:
+        o = gzip.open(filename,'rb')
     else:
-        o = open(genefilename,'r')
+        o = open(filename,'r')
 
     for idx, l in enumerate(o):
-        if '.gz' in genefilename:
+        if '.gz' in filename:
             l=l.decode('ascii')
         if l.startswith('#'):
             continue
@@ -90,11 +76,32 @@ def genomeIndex(genome, mode, geneurls, teurls):
             if name not in clean:
                 clean[name] = []
             clean[name].append([chr,left,riht])
-
     o.close()
+    
+    return raw, clean
 
-    raw = cleanexon(raw) 
-    clean = cleanexon(clean) 
+
+def genomeIndex(genome, mode, tefile, genefile, outname, geneurls, teurls):
+
+    if not genefile: #Download twice for double check, as sometines wget may stops on the way
+        os.system('wget -c %s'%geneurls)
+        os.system('wget -c %s'%geneurls)
+        genefilename = geneurls.split('/')[-1:][0]
+    else:
+        genefilename = genefile
+    
+    a = readGtf(genefilename)
+    
+    raw = cleanexon(a[0]) 
+    clean = cleanexon(a[1]) 
+    
+    if not tefile:
+        os.system('wget -c %s'%teurls)
+        os.system('wget -c %s'%teurls)
+        tefilename = teurls.split('/')[-1:][0]
+        teform ={'force_tsv': True, 'loc': 'location(chr=column[5], left=column[6], right=column[7])', 'annot': 10}
+    else:
+        tefilename = tefile
     
     gls = genelist()
     gls.load_list(clean)
@@ -132,18 +139,24 @@ def genomeIndex(genome, mode, geneurls, teurls):
             if '.gz' in tefilename:
                 l = l.decode('ascii')
             t = l.strip().split('\t')
-            chr = t[5].replace('chr', '')
             
+            if not tefile:
+                chr = t[5].replace('chr', '')
+                left = int(t[6])
+                rite = int(t[7])
+                name = t[10]
+            else:
+                chr = t[0].replace('chr', '')
+                left = int(t[1])
+                rite = int(t[2])
+                name = t[3]
+                
             if chr not in chr_list:
                 continue
-            
             if chr not in gene: # Should be very rare
-                noverlap.append({'loc': location(chr=chr, left=left, right=rite), 'annot': t[10]})
+                noverlap.append({'loc': location(chr=chr, left=left, right=rite), 'annot': name})
                 continue
             
-            left = int(t[6])
-            rite = int(t[7])
-
             left_buck = ((left-1)//10000) * 10000
             right_buck = (rite//10000) * 10000
             buckets_reqd = range(left_buck, right_buck+10000, 10000)
@@ -161,7 +174,7 @@ def genomeIndex(genome, mode, geneurls, teurls):
                         if i == 0: # already found an overlap, so quit out;
                             break
                 if i == 1:
-                    noverlap.append({'loc': location(chr=chr, left=left, right=rite), 'annot': t[10]})
+                    noverlap.append({'loc': location(chr=chr, left=left, right=rite), 'annot': name})
         
         TEs = genelist()
         TEs.load_list(noverlap)
@@ -170,7 +183,13 @@ def genomeIndex(genome, mode, geneurls, teurls):
         genes.load_list(raw)
 
         all_annot = genes + TEs
-        all_annot.save('%s.exclusive.glb'%genome)
+        
+        if not outname:
+            all_annot.save('%s.exclusive.glb'%genome)
+            print('Done the index building, results output to %s.exclusive.glb \n'% genome)
+        else:
+            all_annot.save('%s.exclusive.glb'%outname)
+            print('Done the index building, results output to %s.exclusive.glb \n'% outname)
 
     elif mode == 'inclusive':
         genes = genelist() 
@@ -182,17 +201,32 @@ def genomeIndex(genome, mode, geneurls, teurls):
             TEs = genelist(tefilename, format=teform)
         
         all_annot = genes + TEs
-        all_annot.save('%s.inclusive.glb'%genome)
+        
+        if not outname:
+            all_annot.save('%s.inclusive.glb'%genome)
+            print('Done the index building, results output to %s.inclusive.glb \n'% genome)
+        else:
+            all_annot.save('%s.inclusive.glb'%outname)
+            print('Done the index building, results output to %s.inclusive.glb \n'% outname)
     
-    os.system('rm %s %s'%(genefilename,tefilename))
+    if not tefile:
+        os.system('rm %s '% tefilename)
+    if not genefile:
+        os.system('rm %s'%genefilename)
 
 def prepare_parser():
     
     desc = "Build genome annotation index for scTE"
 
-    exmp = "Example: scTE_build -g mm10"
+    exmp = "Example: scTE_build -g mm10 -te Data/TE.bed -gene Data/Gene.gtf"
     
     parser = argparse.ArgumentParser(prog='scTE_build',description=desc, epilog=exmp)
+    
+    parser.add_argument('-te', dest='tefile',nargs='+',
+                        help='Six columns bed file for transposable elements annotation. Need the -gene option. Mutalluy exclusive to -x option')
+
+    parser.add_argument('-gene', dest='genefile',nargs='+',
+                        help='Gtf file for genes annotation. Need the -te option. Mutalluy exclusive to -x option')
     
     parser.add_argument('-m','--mode', metavar='TEs counting mode', dest='mode', nargs='?', type=str,
                         default='exclusive', choices=['inclusive','exclusive'],
@@ -201,6 +235,8 @@ def prepare_parser():
 
     parser.add_argument('-g','--genome', metavar='genome', dest='genome',type=str, nargs='?', choices=['hg38','mm10',],required=True,
                         help='Possible Genomes: mm10 (mouse), hg38 (human)')
+    
+    parser.add_argument('-o','--out', dest='out', nargs='?', help='Output file prefix, Default: the genome name')
     
     return parser
 
@@ -215,13 +251,23 @@ def main():
 
     info("Building the scTE genome annotation index... %s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
     
+    if args.tefile:
+        tefile = args.tefile[0]
+    else:
+        tefile = None
+        
+    if args.genefile:
+        genefile = args.genefile[0]
+    else:
+        genefile = None
+    
     if args.genome == 'mm10':
-        genomeIndex(args.genome,args.mode,
+        genomeIndex(args.genome,args.mode,tefile,genefile,args.out,
                     'ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M21/gencode.vM21.annotation.gtf.gz',
                     'http://hgdownload.soe.ucsc.edu/goldenPath/mm10/database/rmsk.txt.gz')
     
     elif args.genome == 'hg38':
-        genomeIndex(args.genome,args.mode,
+        genomeIndex(args.genome,args.mode,tefile,genefile,args.outs,
                     'ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_30/gencode.v30.annotation.gtf.gz',
                     'http://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/rmsk.txt.gz')
 
