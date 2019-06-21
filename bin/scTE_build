@@ -185,11 +185,11 @@ def genomeIndex(genome, mode, tefile, genefile, outname, geneurls, teurls):
         all_annot = genes + TEs
         
         if not outname:
-            all_annot.save('%s.exclusive.glb'%genome)
-            print('Done the index building, results output to %s.exclusive.glb \n'% genome)
+            all_annot.save('%s.exclusive.idx'%genome)
+            print('Done the index building, results output to %s.exclusive.idx \n'% genome)
         else:
-            all_annot.save('%s.exclusive.glb'%outname)
-            print('Done the index building, results output to %s.exclusive.glb \n'% outname)
+            all_annot.save('%s.exclusive.idx'%outname)
+            print('Done the index building, results output to %s.exclusive.idx \n'% outname)
 
     elif mode == 'inclusive':
         genes = genelist() 
@@ -203,11 +203,11 @@ def genomeIndex(genome, mode, tefile, genefile, outname, geneurls, teurls):
         all_annot = genes + TEs
         
         if not outname:
-            all_annot.save('%s.inclusive.glb'%genome)
-            print('Done the index building, results output to %s.inclusive.glb \n'% genome)
+            all_annot.save('%s.inclusive.idx'%genome)
+            print('Done the index building, results output to %s.inclusive.idx \n'% genome)
         else:
-            all_annot.save('%s.inclusive.glb'%outname)
-            print('Done the index building, results output to %s.inclusive.glb \n'% outname)
+            all_annot.save('%s.inclusive.idx'%outname)
+            print('Done the index building, results output to %s.inclusive.idx \n'% outname)
     
     if not tefile:
         os.system('rm %s '% tefilename)
