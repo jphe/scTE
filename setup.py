@@ -7,7 +7,7 @@ def readme():
 
 setup(name='scTE',
         version='1.0',
-        description='Tools for estimating differential enrichment of Transposable Elements and other highly repetitive regions',
+        description='Tool for estimating differential enrichment of Transposable Elements and other highly repetitive regions in single-cell data',
         long_description=readme(),
         classifiers=[
         'Programming Language :: Python :: 3',
@@ -21,6 +21,7 @@ setup(name='scTE',
         license='..',
         packages=[
           'scTE',
+          'scTE.miniglbase',
         ],
         platforms=[
           'Linux',
