@@ -1,7 +1,7 @@
 import os,sys,gzip,time
 import numpy as np
-# from .miniglbase import genelist, glload, location
-from glbase3 import genelist, glload, location
+from scTE.miniglbase import genelist, glload, location
+# from glbase3 import genelist, glload, location
 
 form ={'force_tsv': True, 'loc': 'location(chr=column[0], left=column[1], right=column[2])', 'annot': 3}
 
@@ -47,7 +47,7 @@ def annoGtf(filename, genefile, tefile, mode):
             continue
         t=l.strip().split('\t')
         if t[2]=='exon' or t[2]=='UTR':
-            chr = t[0]
+            chr = t[0].replace('chr','')
             left = int(t[3])
             riht =  int(t[4])
             name=t[8].split('gene_name "')[1].split('";')[0]
@@ -71,7 +71,7 @@ def annoGtf(filename, genefile, tefile, mode):
         o = gzip.open('%s_scTEtmp/index/%s.clean.bed.gz'%(filename,genefilename),'rb')
         for l in o:
             t = l.decode('ascii').strip().split('\t')
-            chr = t[0]
+            chr = t[0].replace('chr','')
             left = int(t[1])
             rite = int(t[2])
             
@@ -102,6 +102,10 @@ def annoGtf(filename, genefile, tefile, mode):
             left = int(t[1])
             rite = int(t[2])
             
+            if chr not in gene:
+                noverlap.append('%s\t%s\t%s\t%s\n'%(chr,left,rite,t[3]))
+                continue
+            
             left_buck = int((left-1)/10000) * 10000
             right_buck = int((rite)/10000) * 10000
             buckets_reqd = range(left_buck, right_buck+10000, 10000)
@@ -128,7 +132,9 @@ def annoGtf(filename, genefile, tefile, mode):
 
         genes = genelist('%s_scTEtmp/index/%s.raw.bed.gz'%(filename, genefilename), format=form, gzip=True)
         TEs = genelist('%s_scTEtmp/index/%s.exclusive.gz'%(filename, tefilename), format=form, gzip=True)
-
+        print(genes)
+        print(TEs)
+        
         all_annot = genes + TEs
         all_annot.save('%s_scTEtmp/index/custome.exclusive.glb'%filename)
         annot = '%s_scTEtmp/index/custome.exclusive.glb'%filename

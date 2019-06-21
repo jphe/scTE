@@ -25,11 +25,14 @@ def prepare_parser():
     parser.add_argument('-f','--format', metavar='input file format', dest='format', type=str, nargs='?', default='BAM', choices=['BAM','SAM'],
                         help='Input file format: BAM or SAM. DEFAULT: BAM')
 
-    parser.add_argument('-te', dest='tefile',nargs='+',
-                        help='Six columns bed file for transposable elements annotation. Put "default" for use scTE pre-build annotation index (need -gene = "default")')
+#     parser.add_argument('-te', dest='tefile',nargs='+',
+#                         help='Six columns bed file for transposable elements annotation. Need the -gene option. Mutalluy exclusive to -x option')
+# 
+#     parser.add_argument('-gene', dest='genefile',nargs='+',
+#                         help='Gtf file for genes annotation. Need the -te option. Mutalluy exclusive to -x option')
 
-    parser.add_argument('-gene', dest='genefile',nargs='+',
-                        help='Gtf file for genes annotation. Put "default" for use scTE pre-build annotation index (need -te = "default"). For the scTE pre-build annotation index can bed download from https://github.com/jphe/something')
+    parser.add_argument('-x', dest='annoglb',nargs='+',
+                        help='The filename of the index for the reference genome annotation. Mutalluy exclusive to -te and -gene option')
 
     parser.add_argument('--min_genes', dest='genenumber',metavar='INT', type=int,default=200,
                         help='Minimum number of genes expressed required for a cell to pass filtering. Default: 200')
@@ -74,7 +77,10 @@ def main():
 
     info("Building the genome annotation index... %s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
-    a = getanno(filename=outname, genefile=args.genefile[0],tefile=args.tefile[0], genome=args.genome, mode=args.mode)
+#     if args.genefile and args.tefile:
+#         a = getanno(filename=outname, genefile=args.genefile[0],tefile=args.tefile[0], genome=args.genome, mode=args.mode)
+    
+    a= Readanno(filename=outname, annoglb=args.annoglb[0], genome=args.genome)
     allelement, chr_list, all_annot = a[0], a[1], a[2]
 
     info("Finished building the genome annotation index... %s \n"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))

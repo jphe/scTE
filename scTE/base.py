@@ -18,10 +18,26 @@ def read_opts(parser):
         logging.error("The input file must be SAM/BAM format: %s !\n" % (args.format))
         sys.exit(1)
 
-    if args.mode not in ['inclusive', 'exclusive'] :
-        logging.error("Counting mode %s not supported\n" % (args.mode))
-        parser.print_help()
-        sys.exit(1)
+#     if not args.annoglb:
+#         if not args.genefile:
+#             logging.error("-gene option are needed without index refernece annotation file")
+#             sys.exit(1)
+#         else:
+#             genefile = args.genefile[0]
+#         
+#         if not args.tefile:
+#             logging.error("-te option are needed without index refernece annotation file")
+#             sys.exit(1)
+#     
+#     if args.annoglb:
+#         if args.genefile or args.tefile:
+#             logging.error("-x option are exclusive to -te/-gene options")
+#             sys.exit(1)
+#     
+#     if args.mode not in ['inclusive', 'exclusive'] :
+#         logging.error("Counting mode %s not supported\n" % (args.mode))
+#         parser.print_help()
+#         sys.exit(1)
 
     args.error = logging.critical
     args.warn = logging.warning
@@ -31,8 +47,9 @@ def read_opts(parser):
     args.argtxt ="\n".join(("Parameter list:", \
                 "Sample = %s" % (args.out), \
                 "Genome = %s" % (args.genome), \
-                "TE file = %s" % (args.tefile[0]), \
-                "Gene file = %s" % (args.genefile[0]), \
+#                 "TE file = %s" % (args.tefile), \
+#                 "Gene file = %s" % (args.genefile), \
+                "Reference annotation index = %s" %(args.annoglb), \
                 "Minimum number of genes required = %s" % (args.genenumber), \
                 "Minimum number of counts required = %s"% (args.countnumber),\
                 "Mode = %s " % (args.mode), \
@@ -76,10 +93,10 @@ def getanno(filename, genefile, tefile, genome, mode):
                 all_annot = 'hg38.inclusive.glb'
                 allelement = set(glload(all_annot)['annot'])
     else:
-        if genome == 'hg38':
+        if genome in ['hg38']:
             chr_list = ['chr'+ str(i) for i in range(1,23) ] + [ 'chrX','chrY', 'chrM' ]
         
-        elif genome == 'mm10':
+        elif genome in ['mm10']:
             chr_list = ['chr'+ str(i) for i in range(1,20) ] + [ 'chrX','chrY', 'chrM' ]
 
         if not os.path.isfile(tefile) :
@@ -93,6 +110,15 @@ def getanno(filename, genefile, tefile, genome, mode):
         all_annot = annoGtf(filename, genefile=genefile, tefile=tefile, mode=mode)
         allelement = set(glload(all_annot)['annot'])
 
+    return(allelement,chr_list,all_annot)
+
+def Readanno(filename, annoglb, genome):
+    allelement = set(glload(annoglb)['annot'])
+    if genome in ['mm10']:
+        chr_list = ['chr'+ str(i) for i in range(1,20) ] + [ 'chrX','chrY', 'chrM' ]
+    elif genome in ['hg38']:
+        chr_list = ['chr'+ str(i) for i in range(1,22) ] + [ 'chrX','chrY', 'chrM' ]
+    all_annot = annoglb
     return(allelement,chr_list,all_annot)
 
 def Bam2bed(filename,out):
