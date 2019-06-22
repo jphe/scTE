@@ -15,7 +15,7 @@ from scTE.base import *
 def prepare_parser():
     desc = "hahaha..."
 
-    exmp = "Example: scTE <-i scRNA.sorted.bam> <-t TEs.bed.gz> <-gene Genes.gtf.gz> <-g mm10 > <-o out> [--min_genes 200] [--min_counts 400] [-p -10]"
+    exmp = "Example: scTE <-i scRNA.sorted.bam> <-g mm10 > <-o out> [--min_genes 200] [--min_counts 400] [-p -10] <-x mm10.exclusive.idx>"
 
     parser = argparse.ArgumentParser(prog='scTE',description=desc, epilog=exmp)
 
