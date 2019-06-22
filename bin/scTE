@@ -46,10 +46,10 @@ def prepare_parser():
     parser.add_argument('-g','--genome', metavar='genome', dest='genome',type=str, nargs='?', default='mm10', choices=['hg38','mm10',],required=True,
                         help='"hg38" for human, "mm10" for mouse, Default: mm10')
 
-    parser.add_argument('-m','--mode', metavar='TEs counting mode', dest='mode', nargs='?', type=str,
-                        default='exclusive', choices=['inclusive','exclusive'],
-                        help='How to count TEs expression: inclusive (inclued all reads that can map to TEs), or exclusive (exclued the reads that can map to protein coding genes and lncRNAs).\
-                        DEFAULT: exclusive')
+#     parser.add_argument('-m','--mode', metavar='TEs counting mode', dest='mode', nargs='?', type=str,
+#                         default='exclusive', choices=['inclusive','exclusive'],
+#                         help='How to count TEs expression: inclusive (inclued all reads that can map to TEs), or exclusive (exclued the reads that can map to protein coding genes and lncRNAs).\
+#                         DEFAULT: exclusive')
 
     parser.add_argument('-o','--out', dest='out', nargs='?', required=True, help='Output file prefix')
 
