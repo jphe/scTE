@@ -52,7 +52,7 @@ def read_opts(parser):
                 "Reference annotation index = %s" %(args.annoglb), \
                 "Minimum number of genes required = %s" % (args.genenumber), \
                 "Minimum number of counts required = %s"% (args.countnumber),\
-                "Mode = %s " % (args.mode), \
+#                 "Mode = %s " % (args.mode), \
                 "Number of threads = %s " % (args.thread),\
     ))
     return args
