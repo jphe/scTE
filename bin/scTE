@@ -20,7 +20,7 @@ def prepare_parser():
     parser = argparse.ArgumentParser(prog='scTE',description=desc, epilog=exmp)
 
     parser.add_argument('-i','--input', dest='input', type=str, nargs='+', required=True,
-                        help='Input file: BAM/SAM file outputed by CellRanger or STARsolo, the file must be sored by chromosome position')
+                        help='Input file: BAM/SAM file from CellRanger or STARsolo, the file must be sorted by chromosome position')
 
     parser.add_argument('-f','--format', metavar='input file format', dest='format', type=str, nargs='?', default='BAM', choices=['BAM','SAM'],
                         help='Input file format: BAM or SAM. DEFAULT: BAM')
@@ -32,7 +32,7 @@ def prepare_parser():
 #                         help='Gtf file for genes annotation. Need the -te option. Mutalluy exclusive to -x option')
 
     parser.add_argument('-x', dest='annoglb',nargs='+', required=True,
-                        help='The filename of the index for the reference genome annotation. Mutalluy exclusive to -te and -gene option')
+                        help='The filename of the index for the reference genome annotation. Mutually exclusive to -te and -gene options')
 
     parser.add_argument('--min_genes', dest='genenumber',metavar='INT', type=int,default=200,
                         help='Minimum number of genes expressed required for a cell to pass filtering. Default: 200')
@@ -43,7 +43,7 @@ def prepare_parser():
     parser.add_argument('--expect-cells', dest='cellnumber',metavar='INT', type=int,  default=10000,
                         help='Expected number of cells. Default: 10000')
 
-    parser.add_argument('-g','--genome', metavar='genome', dest='genome',type=str, nargs='?', default='mm10', choices=['hg38','mm10',],required=True,
+    parser.add_argument('-g','--genome', metavar='genome', dest='genome', type=str, nargs='?', default='mm10', choices=['hg38','mm10',], required=True,
                         help='"hg38" for human, "mm10" for mouse, Default: mm10')
 
 #     parser.add_argument('-m','--mode', metavar='TEs counting mode', dest='mode', nargs='?', type=str,
