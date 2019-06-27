@@ -24,16 +24,16 @@ def read_opts(parser):
 #             sys.exit(1)
 #         else:
 #             genefile = args.genefile[0]
-#         
+#
 #         if not args.tefile:
 #             logging.error("-te option are needed without index refernece annotation file")
 #             sys.exit(1)
-#     
+#
 #     if args.annoglb:
 #         if args.genefile or args.tefile:
 #             logging.error("-x option are exclusive to -te/-gene options")
 #             sys.exit(1)
-#     
+#
 #     if args.mode not in ['inclusive', 'exclusive'] :
 #         logging.error("Counting mode %s not supported\n" % (args.mode))
 #         parser.print_help()
@@ -95,18 +95,18 @@ def getanno(filename, genefile, tefile, genome, mode):
     else:
         if genome in ['hg38']:
             chr_list = ['chr'+ str(i) for i in range(1,23) ] + [ 'chrX','chrY', 'chrM' ]
-        
+
         elif genome in ['mm10']:
             chr_list = ['chr'+ str(i) for i in range(1,20) ] + [ 'chrX','chrY', 'chrM' ]
 
         if not os.path.isfile(tefile) :
             logging.error("No such file: %s !\n" %(tefile))
             sys.exit(1)
-        
+
         if not os.path.isfile(genefile) :
             logging.error("No such file: %s !\n" % (genefile))
             sys.exit(1)
-        
+
         all_annot = annoGtf(filename, genefile=genefile, tefile=tefile, mode=mode)
         allelement = set(glload(all_annot)['annot'])
 
@@ -141,7 +141,10 @@ def Bam2bed(filename,out):
 
     os.system('rm %s.test*'%out)
 
-    os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{print $3,$4,$4+100,$%s,$%s}\' | sed -r \'s/CR:Z://g\' | sed -r \'s/UR:Z://g\'| gzip > %s_scTEtmp/o1/%s.bed.gz'%(filename,n,m,out,out))
+    if sys.platform == 'darwin': # Mac OSX has BED sed
+        os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{print $3,$4,$4+100,$%s,$%s}\' | sed -E \'s/CR:Z://g\' | sed -E \'s/UR:Z://g\'| gzip > %s_scTEtmp/o1/%s.bed.gz'%(filename,n,m,out,out))
+    else:
+        os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{print $3,$4,$4+100,$%s,$%s}\' | sed -r \'s/CR:Z://g\' | sed -r \'s/UR:Z://g\'| gzip > %s_scTEtmp/o1/%s.bed.gz'%(filename,n,m,out,out))
 #     os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{for(i=1;i<=NF;i++)if($i~/CR:Z:/)n=i}{for(i=1;i<=NF;i++)if($i~/UR:Z:/)m=i}{print $3,$4,$4+100,$n,$m}\' | sed -r \'s/CR:Z://g\' | sed -r \'s/UR:Z://g\'| gzip > %s_scTEtmp/o1/%s.bed.gz'%(filename,out,out)) # need ~triple time
 
 
