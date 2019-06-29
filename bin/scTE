@@ -71,7 +71,7 @@ def main():
 
     assert sys.version_info >= (3, 6), 'Python >=3.6 is required'
 
-    info( args.argtxt + "\n")
+    info(args.argtxt + "\n")
 
     outname = args.out.split('/')[-1:][0]
 
@@ -107,7 +107,7 @@ def main():
 
     if not os.path.exists('%s_scTEtmp/o4'%outname):
         os.system('mkdir -p %s_scTEtmp/o4'%outname)
-    os.system('zcat -f %s_scTEtmp/o3/%s.*.bed.gz | gzip > %s_scTEtmp/o4/%s.bed.gz'%(outname,outname,outname,outname))
+    os.system('gunzip -c -f %s_scTEtmp/o3/%s.*.bed.gz | gzip > %s_scTEtmp/o4/%s.bed.gz'%(outname,outname,outname,outname))
 
     info("Done fetching... %s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
