@@ -221,8 +221,6 @@ def align(chr, filename, all_annot, whitelist):
                 for gene in result:
                     if barcode not in res:
                         res[barcode] = defaultdict(int)
-                    #if gene not in res[barcode]:
-                    #    res[barcode][gene] = 0
                     res[barcode][gene] += 1
 
     oh.close()
