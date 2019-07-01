@@ -4,6 +4,7 @@ from functools import partial
 import logging
 import os, sys, glob, datetime, time, gzip
 import collections
+from collections import defaultdict
 from math import log
 from scTE.miniglbase import genelist, glload, location
 from scTE.annotation import annoGtf
@@ -113,13 +114,13 @@ def getanno(filename, genefile, tefile, genome, mode):
     return(allelement,chr_list,all_annot)
 
 def Readanno(filename, annoglb, genome):
-    allelement = set(glload(annoglb)['annot'])
+    all_annot = glload(annoglb)
+    allelement = set(all_annot['annot'])
     if genome in ['mm10']:
         chr_list = ['chr'+ str(i) for i in range(1,20) ] + [ 'chrX','chrY', 'chrM' ]
     elif genome in ['hg38']:
         chr_list = ['chr'+ str(i) for i in range(1,22) ] + [ 'chrX','chrY', 'chrM' ]
-    all_annot = annoglb
-    return(allelement,chr_list,all_annot)
+    return(allelement, chr_list, all_annot)
 
 def Bam2bed(filename,out):
     if not os.path.exists('%s_scTEtmp/o1'%out):
@@ -174,51 +175,54 @@ def splitChr(chr,filename):
         o.write('%s\t%s\n'%(k,CRs[k]))
     o.close()
 
-def align(chr, filename, annot, whitelist):
+def align(chr, filename, all_annot, whitelist):
 
-    s1=time.time()
-    all_annot=glload(annot)
+    s1 = time.time()
 
-    oh = gzip.open('%s_scTEtmp/o2/%s.%s.bed.gz'%(filename,filename,chr), 'rb')
+    buckets = all_annot.buckets
+    all_annot = all_annot.linearData # faster access
+
+
+    oh = gzip.open('%s_scTEtmp/o2/%s.%s.bed.gz'%(filename,filename,chr), 'rt')
     res = {}
-    for i, line in enumerate(oh):
-        t = line.decode('ascii').strip().split('\t')
+    for line in oh:
+        t = line.strip().split('\t')
 
-        chrom = t[0].replace('chr', '')
-        left = int(t[1])
-        rite = int(t[2])
         barcode = t[3]
         if barcode not in whitelist:
             continue
 
-        loc = location(chr=chrom, left=left, right=rite)
+        chrom = t[0].replace('chr', '')
+        left = int(t[1])
+        rite = int(t[2])
+
+        #loc = location(chr=chrom, left=left, right=rite)
         left_buck = int((left-1)/10000) * 10000
         right_buck = int((rite)/10000) * 10000
         buckets_reqd = range(left_buck, right_buck+10000, 10000)
 
         if buckets_reqd:
             result = []
-            # get the ids reqd.
             loc_ids = set()
 
-            for buck in buckets_reqd:
-                if buck in all_annot.buckets[chrom]:
-                    loc_ids.update(all_annot.buckets[chrom][buck]) # set = unique ids
+            # get the ids reqd.
+            # Push into listcomp:
+            [loc_ids.update(buckets[chrom][buck]) for buck in buckets_reqd if buck in buckets[chrom]]
+            #for buck in buckets_reqd:
+            #    if buck in all_annot.buckets[chrom]:
+            #        loc_ids.update(all_annot.buckets[chrom][buck]) # set = unique ids
 
-            for index in loc_ids:
-                if rite >= all_annot.linearData[index]["loc"].loc['left'] and left <= all_annot.linearData[index]["loc"].loc["right"]:
-                    result.append(all_annot.linearData[index])
-#                     if loc.qcollide(all_annot.linearData[index]["loc"]):
-#                        result.append(all_annot.linearData[index])
+            result = [all_annot[index]['annot'] for index in loc_ids if (rite >= all_annot[index]["loc"].loc['left'] and left <= all_annot[index]["loc"].loc["right"])]
+            #for index in loc_ids:
+            #    if rite >= all_annot[index]["loc"].loc['left'] and left <= all_annot[index]["loc"].loc["right"]:
+            #        result.append(all_annot[index]['annot'])
 
             if result:
-                for r in result:
-                    gene = r['annot']
-
+                for gene in result:
                     if barcode not in res:
-                        res[barcode] = {}
-                    if gene not in res[barcode]:
-                        res[barcode][gene] = 0
+                        res[barcode] = defaultdict(int)
+                    #if gene not in res[barcode]:
+                    #    res[barcode][gene] = 0
                     res[barcode][gene] += 1
 
     oh.close()
@@ -226,7 +230,7 @@ def align(chr, filename, annot, whitelist):
     if not os.path.exists('%s_scTEtmp/o3'%filename):
         os.system('mkdir -p %s_scTEtmp/o3'%filename)
 
-    oh = gzip.open('%s_scTEtmp/o3/%s.%s.bed.gz'%(filename,filename,chr),'wt')
+    oh = gzip.open('%s_scTEtmp/o3/%s.%s.bed.gz' % (filename,filename,chr), 'wt')
     for bc in sorted(res):
         for gene in sorted(res[bc]):
             oh.write('%s\t%s\t%s\n' % (bc, gene, res[bc][gene]))
@@ -246,16 +250,17 @@ def Countexpression(filename, allelement, genenumber, cellnumber):
     o.close()
 
     CRlist = []
-    sortcb=sorted(whitelist.items(),key=lambda item:item[1],reverse=True)
+    sortcb = sorted(whitelist.items(), key=lambda item:item[1], reverse=True)
     for n,k in enumerate(sortcb):
         if k[1] < genenumber:
             break
         if n >= cellnumber:
             break
         CRlist.append(k[0])
+    CRlist = set(CRlist)
 
     res = {}
-    genes_oh = gzip.open('%s_scTEtmp/o4/%s.bed.gz'%(filename,filename), 'rb')
+    genes_oh = gzip.open('%s_scTEtmp/o4/%s.bed.gz' % (filename,filename), 'rb')
     for n, l in enumerate(genes_oh):
         t = l.decode('ascii').strip().split('\t')
         if t[0] not in CRlist:
@@ -263,24 +268,27 @@ def Countexpression(filename, allelement, genenumber, cellnumber):
         if t[0] not in res:
             res[t[0]] = {}
         if t[1] not in res[t[0]]:
-            res[t[0]][t[1]] = int(t[2])
+            res[t[0]][t[1]] = 0
         res[t[0]][t[1]] += int(t[2])
 
     genes_oh.close()
 
     s=time.time()
+
+    # Save out the final file
     res_oh = open('%s.csv'%filename, 'w')
     res_oh.write('barcodes,')
-    res_oh.write('%s\n' % (','.join([str(i) for i in sorted(gene_seen)])))
+    res_oh.write('%s\n' % (','.join([str(i) for i in gene_seen])))
+
+    gene_seen = list(gene_seen) # Do the sort once;
+    gene_seen.sort()
 
     for k in sorted(res):
-        l = []
-        for gene in sorted(gene_seen):
-            if gene not in res[k]:
-                l.append(0)
-            else:
-                l.append(res[k][gene])
-        res_oh.write('%s,%s\n' % (k, ','.join([str(i) for i in l])))
+        l = ["0"] * len(gene_seen) # Avoid all the appends
+        for idx, gene in enumerate(gene_seen):
+            if gene in res[k]:
+                l[idx] = str(res[k][gene])
+        res_oh.write('%s,%s\n' % (k, ','.join(l)))
     res_oh.close()
 
     print('Detect %s cells expressed at least %s genes, results output to %s.csv'%(len(res),genenumber,filename))
