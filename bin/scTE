@@ -109,7 +109,7 @@ def main():
     else: # Multiprocessing path:
         info('Executing multiple thread path with %s threads' % args.thread)
         pool = multiprocessing.Pool(processes=args.thread)
-        partial_work = partial(align, filename=outname, all_annot=glannot, whitelist=whitelist) # send a copy of the index
+        partial_work = partial(align, filename=outname, all_annot=all_annot, whitelist=whitelist) # send a copy of the index
         pool.map(partial_work, chr_list)
 
     if not os.path.exists('%s_scTEtmp/o4'%outname):
