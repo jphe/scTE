@@ -89,29 +89,28 @@ def main():
     Bam2bed(args.input[0], outname)
 
     if args.thread == 1: #Single thread path, mainly
+        # This is useful for testing optimsations, as the multiprocessing path the profile
+        # Just gets locked up in {method 'acquire' of '_thread.lock' objects}
+        info('Executing single thread path')
         for chrom in chr_list:
             splitChr(chr=chrom, filename=outname)
     else:
+        info('Executing multiple thread path with %s threads' % args.thread)
         pool=multiprocessing.Pool(processes=args.thread)
         partial_work = partial(splitChr, filename=outname)
         pool.map(partial_work, chr_list)
 
     info("Finished processing sample files %s \n"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
-
     info("Fetching from the annotation index... %s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
     whitelist = filterCRs(filename=outname, genenumber=args.genenumber, countnumber=args.countnumber)
 
     if args.thread == 1: #Single thread path, mainly
-        # This is useful for testing optimsations, as the multiprocessing path the profile
-        # Just gets locked up in {method 'acquire' of '_thread.lock' objects}
-        info('Executing single thread path')
         for chrom in chr_list:
             align(chr=chrom, filename=outname, all_annot=all_annot, whitelist=whitelist)
 
     else: # Multiprocessing path:
-        info('Executing multiple thread path with %s threads' % args.thread)
         pool = multiprocessing.Pool(processes=args.thread)
         partial_work = partial(align, filename=outname, all_annot=all_annot, whitelist=whitelist) # send a copy of the index
         pool.map(partial_work, chr_list)

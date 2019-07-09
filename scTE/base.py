@@ -149,6 +149,48 @@ def Bam2bed(filename,out):
 #     os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{for(i=1;i<=NF;i++)if($i~/CR:Z:/)n=i}{for(i=1;i<=NF;i++)if($i~/UR:Z:/)m=i}{print $3,$4,$4+100,$n,$m}\' | sed -r \'s/CR:Z://g\' | sed -r \'s/UR:Z://g\'| gzip > %s_scTEtmp/o1/%s.bed.gz'%(filename,out,out)) # need ~triple time
 
 
+def splitAllChrs(chromosome_list, filename):
+    '''
+    **Purpose**
+        Split the data into separate beds, and count up all the times each barcode appears
+
+        This variant uses a lot of memory, but does it all at the same time;
+
+    '''
+    if not os.path.exists('%s_scTEtmp/o2' % filename):
+        os.system('mkdir -p %s_scTEtmp/o2'%filename)
+
+    file_handle_in = gzip.open('%s_scTEtmp/o1/%s.bed.gz' % (filename,filename), 'rt')
+    file_handles_out= [gzip.open('%s_scTEtmp/o2/%s.%s.bed.gz' % (filename,filename,chr), 'w') for chr in chromosome_list]
+    uniques = {chrom: set([]) for chrom in chromosome_list}
+
+    for line in file_handle_in:
+        l.split('\t')
+        if line in uniques[l[0]]:
+            continue
+        uniques[
+
+    if chr == 'chr1':
+        os.system('gunzip -c -f %s_scTEtmp/o1/%s.bed.gz | grep -v chr1\'[0-9]\' | grep %s | awk \'!x[$0]++\' | gzip -c > %s_scTEtmp/o2/%s.%s.bed.gz'%(filename,filename,chr,filename,filename,chr))
+    elif chr == 'chr2':
+        os.system('gunzip -c -f %s_scTEtmp/o1/%s.bed.gz | grep -v chr2\'[0-9]\' | grep %s | awk \'!x[$0]++\' | gzip -c > %s_scTEtmp/o2/%s.%s.bed.gz'%(filename,filename,chr,filename,filename,chr))
+    else:
+        os.system('gunzip -c -f %s_scTEtmp/o1/%s.bed.gz | grep %s | awk \'!x[$0]++\' | gzip -c > %s_scTEtmp/o2/%s.%s.bed.gz'%(filename,filename,chr,filename,filename,chr))
+
+    CRs = {}
+    o = gzip.open('%s_scTEtmp/o2/%s.%s.bed.gz'%(filename,filename,chr),'rb')
+    for l in o:
+        t = l.decode('ascii').strip().split('\t')
+        if t[3] not in CRs:
+            CRs[t[3]] = 0
+        CRs[t[3]] += 1
+    o.close()
+
+    o = gzip.open('%s_scTEtmp/o2/%s.%s.count.gz'%(filename,filename,chr),'wt')
+    for k in CRs:
+        o.write('%s\t%s\n'%(k,CRs[k]))
+    o.close()
+
 def splitChr(chr,filename):
     if not os.path.exists('%s_scTEtmp/o2'%filename):
         os.system('mkdir -p %s_scTEtmp/o2'%filename)
@@ -318,7 +360,7 @@ def filterCRs(filename,genenumber,countnumber):
             break
         whitelist.append(k[0])
 
-    return whitelist
+    return set(whitelist)
 
 def timediff(timestart, timestop):
         t  = (timestop-timestart)
