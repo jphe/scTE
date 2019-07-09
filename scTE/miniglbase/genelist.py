@@ -10,16 +10,10 @@ from operator import itemgetter
 
 from . import config
 from . import utils
-#from .helpers import *
 from .location import location
-#from .draw import draw
-#from .history import historyContainer
-#from .errors import AssertionError, UnRecognisedCSVFormatError, UnrecognisedFileFormatError, ArgumentError
-
 from .base_genelist import _base_genelist
-#from .format import sniffer, sniffer_tsv
 
-class genelist(_base_genelist): # gets a special uppercase for some dodgy code in map() I don't dare refactor.
+class genelist(_base_genelist):
     """
     **Purpose**
         This is a class container for any arrangement of heterogenous data.
@@ -1515,59 +1509,4 @@ class genelist(_base_genelist): # gets a special uppercase for some dodgy code i
                 if i[k] == value:
                     return(i)
 
-        return(False)
-
-    def islocinlist(self, loc, key="loc", mode="collide", delta=200):
-        """
-        **Purpose**
-            check if the specified loc is in this peaklist.
-
-        **Arguments**
-            loc
-                the location to check for
-
-            key (Optional, default=False)
-                the location key to search in
-
-            mode (Optional, default = False)
-                the collision mode to use ("collide" or "overlap")
-
-            delta (Optional, default = 200 bp)
-                the delta around the peak to check
-
-        **Returns**
-            True or False
-        """
-        assert loc, "loc must be valid"
-        if not isinstance(loc, location):
-            loc = location(loc=loc)
-
-        # Easy rejection if the chr bucket is not available:
-        if loc["chr"] not in self.buckets:
-            return(False)
-
-        if mode == "collide":
-            loc = loc.pointify().expand(delta)
-        elif mode == "overlap":
-            if delta:
-                loc = loc.expand(delta)
-
-        # work out which of the buckets is required:
-        left_buck = ((loc["left"]-1-delta)//config.bucket_size)*config.bucket_size
-        right_buck = ((loc["right"]+delta)//config.bucket_size)*config.bucket_size
-        buckets_reqd = list(range(left_buck, right_buck+config.bucket_size, config.bucket_size)) # make sure to get the right spanning and left spanning sites
-
-        # get the ids reqd.
-        loc_ids = set()
-        if buckets_reqd:
-            for buck in buckets_reqd:
-                if buck in self.buckets[loc["chr"]]:
-                    loc_ids.update(self.buckets[loc["chr"]][buck]) # set = unique ids
-
-        # loc_ids is a set, and has no order.
-        #print loc_ids
-        for index in loc_ids:
-            #print loc.qcollide(self.linearData[index]["loc"]), loc, self.linearData[index]["loc"]
-            if loc.qcollide(self.linearData[index]["loc"]):
-                return(True)
         return(False)
