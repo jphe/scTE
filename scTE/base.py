@@ -153,7 +153,6 @@ def splitChr(chr,filename):
     if not os.path.exists('%s_scTEtmp/o2'%filename):
         os.system('mkdir -p %s_scTEtmp/o2'%filename)
 
-
     if chr == 'chr1':
         os.system('gunzip -c -f %s_scTEtmp/o1/%s.bed.gz | grep -v chr1\'[0-9]\' | grep %s | awk \'!x[$0]++\' | gzip -c > %s_scTEtmp/o2/%s.%s.bed.gz'%(filename,filename,chr,filename,filename,chr))
     elif chr == 'chr2':
@@ -176,14 +175,19 @@ def splitChr(chr,filename):
     o.close()
 
 def align(chr, filename, all_annot, whitelist):
+    '''
+    **Purpose**
+        For each read, align it to the index and assign a TE, gene.
 
+    This is the speed critical part.
+
+    '''
     s1 = time.time()
 
-    buckets = all_annot.buckets
-    all_annot = all_annot.linearData # faster access
+    buckets = all_annot.buckets[chr.replace('chr', '')]
+    all_annot = all_annot.linearData
 
-
-    oh = gzip.open('%s_scTEtmp/o2/%s.%s.bed.gz'%(filename,filename,chr), 'rt')
+    oh = gzip.open('%s_scTEtmp/o2/%s.%s.bed.gz' % (filename, filename, chr), 'rt')
     res = {}
     for line in oh:
         t = line.strip().split('\t')
@@ -191,36 +195,35 @@ def align(chr, filename, all_annot, whitelist):
         barcode = t[3]
         if barcode not in whitelist:
             continue
+        if barcode not in res:
+            res[barcode] = defaultdict(int)
 
         chrom = t[0].replace('chr', '')
         left = int(t[1])
         rite = int(t[2])
 
         #loc = location(chr=chrom, left=left, right=rite)
-        left_buck = int((left-1)/10000) * 10000
-        right_buck = int((rite)/10000) * 10000
+        left_buck = ((left-1)//10000) * 10000
+        right_buck = ((rite)//10000) * 10000
         buckets_reqd = range(left_buck, right_buck+10000, 10000)
 
         if buckets_reqd:
-            result = []
             loc_ids = set()
+            loc_ids_update = loc_ids.update
 
             # get the ids reqd.
-            # Push into listcomp:
-            [loc_ids.update(buckets[chrom][buck]) for buck in buckets_reqd if buck in buckets[chrom]]
+            [loc_ids_update(buckets[buck]) for buck in buckets_reqd if buck in buckets]
             #for buck in buckets_reqd:
             #    if buck in all_annot.buckets[chrom]:
-            #        loc_ids.update(all_annot.buckets[chrom][buck]) # set = unique ids
+            #        loc_ids.update(all_annot.buckets[chrom][buck])
 
-            result = [all_annot[index]['annot'] for index in loc_ids if (rite >= all_annot[index]["loc"].loc['left'] and left <= all_annot[index]["loc"].loc["right"])]
+            result = [all_annot[index]['annot'] for index in loc_ids if (rite >= all_annot[index]['loc'].loc['left'] and left <= all_annot[index]['loc'].loc["right"])]
             #for index in loc_ids:
             #    if rite >= all_annot[index]["loc"].loc['left'] and left <= all_annot[index]["loc"].loc["right"]:
             #        result.append(all_annot[index]['annot'])
 
             if result:
                 for gene in result:
-                    if barcode not in res:
-                        res[barcode] = defaultdict(int)
                     res[barcode][gene] += 1
 
     oh.close()

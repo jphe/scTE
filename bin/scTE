@@ -88,16 +88,20 @@ def main():
 
     Bam2bed(args.input[0], outname)
 
-    pool=multiprocessing.Pool(processes=args.thread)
-    partial_work = partial(splitChr, filename=outname)
-    pool.map(partial_work, chr_list)
+    if args.thread == 1: #Single thread path, mainly
+        for chrom in chr_list:
+            splitChr(chr=chrom, filename=outname)
+    else:
+        pool=multiprocessing.Pool(processes=args.thread)
+        partial_work = partial(splitChr, filename=outname)
+        pool.map(partial_work, chr_list)
 
     info("Finished processing sample files %s \n"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
 
     info("Fetching from the annotation index... %s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
-    whitelist = filterCRs(filename=outname,genenumber=args.genenumber, countnumber=args.countnumber)
+    whitelist = filterCRs(filename=outname, genenumber=args.genenumber, countnumber=args.countnumber)
 
     if args.thread == 1: #Single thread path, mainly
         # This is useful for testing optimsations, as the multiprocessing path the profile
@@ -125,7 +129,7 @@ def main():
     info("Finished calculating expression %s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
     timeend=datetime.datetime.now()
-    info("Done with %s s\n"%timediff(timestart,timeend))
+    info("Done with %s\n"%timediff(timestart,timeend))
 
 if __name__ == '__main__':
     try:
