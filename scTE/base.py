@@ -149,48 +149,56 @@ def Bam2bed(filename,out):
 #     os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{for(i=1;i<=NF;i++)if($i~/CR:Z:/)n=i}{for(i=1;i<=NF;i++)if($i~/UR:Z:/)m=i}{print $3,$4,$4+100,$n,$m}\' | sed -r \'s/CR:Z://g\' | sed -r \'s/UR:Z://g\'| gzip > %s_scTEtmp/o1/%s.bed.gz'%(filename,out,out)) # need ~triple time
 
 
-def splitAllChrs(chromosome_list, filename):
+def splitAllChrs(chromosome_list, filename, genenumber, countnumber):
     '''
     **Purpose**
         Split the data into separate beds, and count up all the times each barcode appears
 
-        This variant uses a lot of memory, but does it all at the same time;
+        This variant uses more memory, but does it all at the same time and gets the filtered whitelist for free
 
+    **Returns**
+        The barcode whitelist
     '''
     if not os.path.exists('%s_scTEtmp/o2' % filename):
         os.system('mkdir -p %s_scTEtmp/o2'%filename)
 
     file_handle_in = gzip.open('%s_scTEtmp/o1/%s.bed.gz' % (filename,filename), 'rt')
-    file_handles_out= [gzip.open('%s_scTEtmp/o2/%s.%s.bed.gz' % (filename,filename,chr), 'w') for chr in chromosome_list]
+    file_handles_out= {chr: gzip.open('%s_scTEtmp/o2/%s.%s.bed.gz' % (filename,filename,chr), 'wt') for chr in chromosome_list}
     uniques = {chrom: set([]) for chrom in chromosome_list}
 
+    CRs = defaultdict(int)
+
+    # Make a unique BED
     for line in file_handle_in:
-        l.split('\t')
-        if line in uniques[l[0]]:
+        t = line.split('\t')
+        chrom = t[0]
+        CR = t[3]
+
+        if line in uniques[chrom]:
             continue
-        uniques[
+        uniques[chrom].add(line)
+        file_handles_out[chrom].write(line)
 
-    if chr == 'chr1':
-        os.system('gunzip -c -f %s_scTEtmp/o1/%s.bed.gz | grep -v chr1\'[0-9]\' | grep %s | awk \'!x[$0]++\' | gzip -c > %s_scTEtmp/o2/%s.%s.bed.gz'%(filename,filename,chr,filename,filename,chr))
-    elif chr == 'chr2':
-        os.system('gunzip -c -f %s_scTEtmp/o1/%s.bed.gz | grep -v chr2\'[0-9]\' | grep %s | awk \'!x[$0]++\' | gzip -c > %s_scTEtmp/o2/%s.%s.bed.gz'%(filename,filename,chr,filename,filename,chr))
+        CRs[CR] += 1
+    [file_handles_out[k].close() for k in file_handles_out]
+    del uniques
+
+    # Because this does it all in one go, you can just filter the whitelist here now, and don't need the .count. file;
+    sortcb = sorted(CRs.items(), key=lambda item:item[1], reverse=True) # Sorts by the count;
+
+    if not countnumber:
+        mincounts = 2 * genenumber
     else:
-        os.system('gunzip -c -f %s_scTEtmp/o1/%s.bed.gz | grep %s | awk \'!x[$0]++\' | gzip -c > %s_scTEtmp/o2/%s.%s.bed.gz'%(filename,filename,chr,filename,filename,chr))
+        mincounts = countnumber
 
-    CRs = {}
-    o = gzip.open('%s_scTEtmp/o2/%s.%s.bed.gz'%(filename,filename,chr),'rb')
-    for l in o:
-        t = l.decode('ascii').strip().split('\t')
-        if t[3] not in CRs:
-            CRs[t[3]] = 0
-        CRs[t[3]] += 1
-    o.close()
+    whitelist = []
+    for n, k in enumerate(sortcb):
+        if k[1] < mincounts:
+            break
+        whitelist.append(k[0])
 
-    o = gzip.open('%s_scTEtmp/o2/%s.%s.count.gz'%(filename,filename,chr),'wt')
-    for k in CRs:
-        o.write('%s\t%s\n'%(k,CRs[k]))
-    o.close()
-
+    return set(whitelist)
+'''
 def splitChr(chr,filename):
     if not os.path.exists('%s_scTEtmp/o2'%filename):
         os.system('mkdir -p %s_scTEtmp/o2'%filename)
@@ -215,7 +223,7 @@ def splitChr(chr,filename):
     for k in CRs:
         o.write('%s\t%s\n'%(k,CRs[k]))
     o.close()
-
+'''
 def align(chr, filename, all_annot, whitelist):
     '''
     **Purpose**
@@ -336,6 +344,7 @@ def Countexpression(filename, allelement, genenumber, cellnumber):
 
     print('Detect %s cells expressed at least %s genes, results output to %s.csv'%(len(res),genenumber,filename))
 
+'''
 def filterCRs(filename,genenumber,countnumber):
     CRs = {}
     for f in glob.glob('%s_scTEtmp/o2/%s*.count.gz'%(filename,filename)):
@@ -361,6 +370,7 @@ def filterCRs(filename,genenumber,countnumber):
         whitelist.append(k[0])
 
     return set(whitelist)
+'''
 
 def timediff(timestart, timestop):
         t  = (timestop-timestart)

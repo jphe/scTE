@@ -76,18 +76,16 @@ def main():
     outname = args.out.split('/')[-1:][0]
 
     info("Loading the genome annotation index... %s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
-
 #     if args.genefile and args.tefile:
 #         a = getanno(filename=outname, genefile=args.genefile[0],tefile=args.tefile[0], genome=args.genome, mode=args.mode)
-
     allelement, chr_list, all_annot = Readanno(filename=outname, annoglb=args.annoglb[0], genome=args.genome)
-
     info("Finished loading the genome annotation index... %s \n"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
     info("Processing BAM/SAM files ...%s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
-
     Bam2bed(args.input[0], outname)
+    whitelist = splitAllChrs(chr_list, filename=outname, genenumber=args.genenumber, countnumber=args.countnumber)
 
+    '''
     if args.thread == 1: #Single thread path, mainly
         # This is useful for testing optimsations, as the multiprocessing path the profile
         # Just gets locked up in {method 'acquire' of '_thread.lock' objects}
@@ -99,12 +97,13 @@ def main():
         pool=multiprocessing.Pool(processes=args.thread)
         partial_work = partial(splitChr, filename=outname)
         pool.map(partial_work, chr_list)
+    '''
 
     info("Finished processing sample files %s \n"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
     info("Fetching from the annotation index... %s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
-    whitelist = filterCRs(filename=outname, genenumber=args.genenumber, countnumber=args.countnumber)
+    #whitelist = filterCRs(filename=outname, genenumber=args.genenumber, countnumber=args.countnumber)
 
     if args.thread == 1: #Single thread path, mainly
         for chrom in chr_list:
