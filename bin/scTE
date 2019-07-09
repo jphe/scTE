@@ -75,14 +75,15 @@ def main():
 
     outname = args.out.split('/')[-1:][0]
 
+    info("Processing BAM/SAM files ...%s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+    Bam2bed(args.input[0], outname)
+
     info("Loading the genome annotation index... %s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 #     if args.genefile and args.tefile:
 #         a = getanno(filename=outname, genefile=args.genefile[0],tefile=args.tefile[0], genome=args.genome, mode=args.mode)
     allelement, chr_list, all_annot = Readanno(filename=outname, annoglb=args.annoglb[0], genome=args.genome)
     info("Finished loading the genome annotation index... %s \n"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
-    info("Processing BAM/SAM files ...%s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
-    Bam2bed(args.input[0], outname)
     whitelist = splitAllChrs(chr_list, filename=outname, genenumber=args.genenumber, countnumber=args.countnumber)
 
     '''

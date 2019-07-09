@@ -126,8 +126,9 @@ def Bam2bed(filename,out):
     if not os.path.exists('%s_scTEtmp/o1'%out):
         os.system('mkdir -p %s_scTEtmp/o1'%out)
 
+    # Test to see which columns the barcode is in:
     o = open('%s.test.sh'%out,'w')
-    st = 'samtools view -@ 2 %s | head |awk \'{OFS="\t"}{for(i=1;i<=NF;i++)if($i~/CR:Z:/)n=i}{for(i=1;i<=NF;i++)if($i~/UR:Z:/)m=i}{print n,m}\' > %s.test'%(filename,out)
+    st = 'samtools view -@ 2 %s | head | awk \'{OFS="\t"}{for(i=1;i<=NF;i++)if($i~/CR:Z:/)n=i}{for(i=1;i<=NF;i++)if($i~/UR:Z:/)m=i}{print n,m}\' > %s.test'%(filename,out)
     o.write(st)
     o.close()
 
@@ -143,9 +144,9 @@ def Bam2bed(filename,out):
     os.system('rm %s.test*'%out)
 
     if sys.platform == 'darwin': # Mac OSX has BSD sed
-        os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{print $3,$4,$4+100,$%s,$%s}\' | sed -E \'s/CR:Z://g\' | sed -E \'s/UR:Z://g\'| gzip -c > %s_scTEtmp/o1/%s.bed.gz'%(filename,n,m,out,out))
+        os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{print $3,$4,$4+100,$%s,$%s}\' | sed -E \'s/CR:Z://g\' | sed -E \'s/UR:Z://g\'| awk \'!x[$0]++\' | gzip -c > %s_scTEtmp/o1/%s.bed.gz'%(filename,n,m,out,out))
     else:
-        os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{print $3,$4,$4+100,$%s,$%s}\' | sed -r \'s/CR:Z://g\' | sed -r \'s/UR:Z://g\'| gzip > %s_scTEtmp/o1/%s.bed.gz'%(filename,n,m,out,out))
+        os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{print $3,$4,$4+100,$%s,$%s}\' | sed -r \'s/CR:Z://g\' | sed -r \'s/UR:Z://g\'| awk \'!x[$0]++\' | gzip > %s_scTEtmp/o1/%s.bed.gz'%(filename,n,m,out,out))
 #     os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{for(i=1;i<=NF;i++)if($i~/CR:Z:/)n=i}{for(i=1;i<=NF;i++)if($i~/UR:Z:/)m=i}{print $3,$4,$4+100,$n,$m}\' | sed -r \'s/CR:Z://g\' | sed -r \'s/UR:Z://g\'| gzip > %s_scTEtmp/o1/%s.bed.gz'%(filename,out,out)) # need ~triple time
 
 
@@ -174,9 +175,9 @@ def splitAllChrs(chromosome_list, filename, genenumber, countnumber):
         chrom = t[0]
         CR = t[3]
 
-        if line in uniques[chrom]:
-            continue
-        uniques[chrom].add(line)
+        #if line in uniques[chrom]:
+        #    continue
+        #uniques[chrom].add(line)
         file_handles_out[chrom].write(line)
 
         CRs[CR] += 1
