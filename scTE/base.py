@@ -171,7 +171,7 @@ def splitAllChrs(chromosome_list, filename, genenumber, countnumber):
 
     # Make a unique BED
     for line in file_handle_in:
-        t = line.split('\t')
+        t = line.strip().split('\t')
         chrom = t[0]
         CR = t[3]
 
@@ -182,6 +182,7 @@ def splitAllChrs(chromosome_list, filename, genenumber, countnumber):
 
         CRs[CR] += 1
     [file_handles_out[k].close() for k in file_handles_out]
+    file_handle_in.close()
     del uniques
 
     # Because this does it all in one go, you can just filter the whitelist here now, and don't need the .count. file;
