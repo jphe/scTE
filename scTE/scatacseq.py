@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 '''
 
 The scATAC-seq data comes as three files, P1, P2 and the barcode, and there is no UMI
@@ -26,23 +25,20 @@ as to be basically impossible.
 
 Require pysam
 
+
+See also: bin/pack_scatacseq
+
 '''
+
 import sys
 import gzip
 import argparse
 import logging
+
 try:
     import pysam
 except ImportError:
-    print('pack_scatacseq reuires pysam')
-    sys.quit()
-
-# Command-line options;
-def prepare_parser():
-    parser = argparse.ArgumentParser(description='Package the BAM and BARCODE for the scATAC0seq data to make it suitable for ')
-    parser.add_argument('')
-
-# Below to move to the scTE/bin:
+    pass # fail silently
 
 def fastq(file_handle):
     """
@@ -132,12 +128,6 @@ def parse_bam(infile, barcode_filename, outfile):
 
         # Check the reads:
 
-
-
     inbam.close()
     outfile.close()
-
-if __name__ == '__main__':
-    build_barcode_dict('atac_pbmc_10k_v1_S1_L001_R2_001.fastq.gz', 'whitelist.tsv')
-    #parse_bam('', '', '')
 
