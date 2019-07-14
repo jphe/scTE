@@ -114,13 +114,13 @@ def getanno(filename, genefile, tefile, genome, mode):
     return(allelement,chr_list,all_annot)
 
 def Readanno(filename, annoglb, genome):
-    all_annot = glload(annoglb)
-    allelement = set(all_annot['annot'])
+    glannot = glload(annoglb)
+    allelement = set(glannot['annot'])
     if genome in ['mm10']:
         chr_list = ['chr'+ str(i) for i in range(1,20) ] + [ 'chrX','chrY', 'chrM' ]
     elif genome in ['hg38']:
         chr_list = ['chr'+ str(i) for i in range(1,22) ] + [ 'chrX','chrY', 'chrM' ]
-    return(allelement, chr_list, all_annot)
+    return(allelement, chr_list, annoglb, glannot)
 
 def Bam2bed(filename,out):
     if not os.path.exists('%s_scTEtmp/o1'%out):
@@ -144,9 +144,9 @@ def Bam2bed(filename,out):
     os.system('rm %s.test*'%out)
 
     if sys.platform == 'darwin': # Mac OSX has BSD sed
-        os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{print $3,$4,$4+100,$%s,$%s}\' | sed -E \'s/CR:Z://g\' | sed -E \'s/UR:Z://g\'| awk \'!x[$0]++\' | gzip -c > %s_scTEtmp/o1/%s.bed.gz'%(filename,n,m,out,out))
+        os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{print $3,$4,$4+100,$%s,$%s}\' | sed -E \'s/CR:Z://g\' | sed -E \'s/UR:Z://g\'| gzip -c > %s_scTEtmp/o1/%s.bed.gz'%(filename,n,m,out,out))
     else:
-        os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{print $3,$4,$4+100,$%s,$%s}\' | sed -r \'s/CR:Z://g\' | sed -r \'s/UR:Z://g\'| awk \'!x[$0]++\' | gzip > %s_scTEtmp/o1/%s.bed.gz'%(filename,n,m,out,out))
+        os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{print $3,$4,$4+100,$%s,$%s}\' | sed -r \'s/CR:Z://g\' | sed -r \'s/UR:Z://g\'| gzip > %s_scTEtmp/o1/%s.bed.gz'%(filename,n,m,out,out))
 #     os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{for(i=1;i<=NF;i++)if($i~/CR:Z:/)n=i}{for(i=1;i<=NF;i++)if($i~/UR:Z:/)m=i}{print $3,$4,$4+100,$n,$m}\' | sed -r \'s/CR:Z://g\' | sed -r \'s/UR:Z://g\'| gzip > %s_scTEtmp/o1/%s.bed.gz'%(filename,out,out)) # need ~triple time
 
 
@@ -168,11 +168,18 @@ def splitAllChrs(chromosome_list, filename, genenumber, countnumber):
 
     CRs = defaultdict(int)
 
+    uniques = {chrom: set([]) for chrom in chromosome_list}
+
     # Make a BED for each chromosome
     for line in file_handle_in:
         t = line.strip().split('\t')
         chrom = t[0]
+        if line in uniques[chrom]:
+            continue
+        uniques[chrom].add(line)
+
         CR = t[3]
+
         file_handles_out[chrom].write(line)
         CRs[CR] += 1
 
@@ -194,7 +201,7 @@ def splitAllChrs(chromosome_list, filename, genenumber, countnumber):
         whitelist.append(k[0])
 
     return set(whitelist)
-'''
+
 def splitChr(chr,filename):
     if not os.path.exists('%s_scTEtmp/o2'%filename):
         os.system('mkdir -p %s_scTEtmp/o2'%filename)
@@ -219,8 +226,8 @@ def splitChr(chr,filename):
     for k in CRs:
         o.write('%s\t%s\n'%(k,CRs[k]))
     o.close()
-'''
-def align(chr, filename, all_annot, whitelist):
+
+def align(chr, filename, all_annot, glannot, whitelist):
     '''
     **Purpose**
         For each read, align it to the index and assign a TE, gene.
@@ -230,8 +237,12 @@ def align(chr, filename, all_annot, whitelist):
     '''
     s1 = time.time()
 
-    buckets = all_annot.buckets[chr.replace('chr', '')]
-    all_annot = all_annot.linearData
+    if not glannot: # Load separately for the multicore pipeline, share the index for the single core pipeline
+        glannot = glload(all_annot)
+
+    # Only keep the glbase parts we need.
+    buckets = glannot.buckets[chr.replace('chr', '')]
+    all_annot = glannot.linearData
 
     oh = gzip.open('%s_scTEtmp/o2/%s.%s.bed.gz' % (filename, filename, chr), 'rt')
     res = {}
@@ -340,7 +351,6 @@ def Countexpression(filename, allelement, genenumber, cellnumber):
 
     print('Detect %s cells expressed at least %s genes, results output to %s.csv'%(len(res),genenumber,filename))
 
-'''
 def filterCRs(filename,genenumber,countnumber):
     CRs = {}
     for f in glob.glob('%s_scTEtmp/o2/%s*.count.gz'%(filename,filename)):
@@ -366,7 +376,6 @@ def filterCRs(filename,genenumber,countnumber):
         whitelist.append(k[0])
 
     return set(whitelist)
-'''
 
 def timediff(timestart, timestop):
         t  = (timestop-timestart)

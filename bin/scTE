@@ -81,38 +81,32 @@ def main():
     info("Loading the genome annotation index... %s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 #     if args.genefile and args.tefile:
 #         a = getanno(filename=outname, genefile=args.genefile[0],tefile=args.tefile[0], genome=args.genome, mode=args.mode)
-    allelement, chr_list, all_annot = Readanno(filename=outname, annoglb=args.annoglb[0], genome=args.genome)
+    allelement, chr_list, all_annot, glannot = Readanno(filename=outname, annoglb=args.annoglb[0], genome=args.genome)
     info("Finished loading the genome annotation index... %s \n"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
-    whitelist = splitAllChrs(chr_list, filename=outname, genenumber=args.genenumber, countnumber=args.countnumber)
-
-    '''
     if args.thread == 1: #Single thread path, mainly
         # This is useful for testing optimsations, as the multiprocessing path the profile
         # Just gets locked up in {method 'acquire' of '_thread.lock' objects}
         info('Executing single thread path')
-        for chrom in chr_list:
-            splitChr(chr=chrom, filename=outname)
+        whitelist = splitAllChrs(chr_list, filename=outname, genenumber=args.genenumber, countnumber=args.countnumber)
     else:
         info('Executing multiple thread path with %s threads' % args.thread)
         pool=multiprocessing.Pool(processes=args.thread)
         partial_work = partial(splitChr, filename=outname)
         pool.map(partial_work, chr_list)
-    '''
+        whitelist = filterCRs(filename=outname, genenumber=args.genenumber, countnumber=args.countnumber)
 
     info("Finished processing sample files %s \n"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
     info("Fetching from the annotation index... %s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
-    #whitelist = filterCRs(filename=outname, genenumber=args.genenumber, countnumber=args.countnumber)
-
-    if args.thread == 1: #Single thread path, mainly
+    if args.thread == 1: #Single thread path
         for chrom in chr_list:
-            align(chr=chrom, filename=outname, all_annot=all_annot, whitelist=whitelist)
+            align(chr=chrom, filename=outname, all_annot=None, glannot=glannot, whitelist=whitelist)
 
     else: # Multiprocessing path:
         pool = multiprocessing.Pool(processes=args.thread)
-        partial_work = partial(align, filename=outname, all_annot=all_annot, whitelist=whitelist) # send a copy of the index
+        partial_work = partial(align, filename=outname, all_annot=all_annot, glannot=None, whitelist=whitelist) # send a copy of the index
         pool.map(partial_work, chr_list)
 
     if not os.path.exists('%s_scTEtmp/o4'%outname):
