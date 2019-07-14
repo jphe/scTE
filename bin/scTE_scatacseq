@@ -44,11 +44,13 @@ from scTE.scatacseq import build_barcode_dict
 
 # Command-line options;
 def prepare_parser():
-    exmp = 'pack_scatacseq -i in.bam -f fastq.fastq[.gz] -o out.bam -w observed_whitelist.txt [-e expected_whitelist.txt]'
+    exmp = 'scTE_scatacseq -i in.bam -f fastq.fastq[.gz] -o out.bam -w observed_whitelist.txt [-e expected_whitelist.txt]'
 
     description = 'Package the BAM and BARCODE for the scATAC-seq data to make it suitable for scTE main pipeline'
 
-    parser = argparse.ArgumentParser(prog='pack_scatacseq', description=description, epilog=exmp)
+    description = 'dummy'
+
+    parser = argparse.ArgumentParser(prog='scTE_scatacseq', description=description, epilog=exmp)
     # Optional:
     optional = parser._action_groups.pop()
     optional.add_argument('-e', '--expwhite', nargs=1, required=False, help='A txt file containing the expected whitelist of barcodes to correct the observed barcodes with')
@@ -64,6 +66,13 @@ def prepare_parser():
 
     optional = parser.add_argument_group('optional arguments')
     optional
+
+    logging.basicConfig(level=logging.DEBUG,
+                    format='%(levelname)-8s: %(message)s',
+                    datefmt='%m-%d %H:%M')
+
+    parser.log = logging.getLogger('scTE_scatacseq')
+
     return parser
 
 def main():
@@ -72,14 +81,18 @@ def main():
     parser = prepare_parser()
     args = parser.parse_args()
 
-    logging.info('Arguments:')
-    logging.info('  inbam: %s' % args.inbam)
-    logging.info('  outbam: %s' % args.outbam)
+    logger = parser.log
 
-    logging.info('Building barcode whitelist')
-    build_barcode_dict('atac_pbmc_10k_v1_S1_L001_R2_001.fastq.gz', 'whitelist.tsv')
+    logger.info('Arguments:')
+    logger.info('  inbam: %s' % args.inbam)
+    logger.info('  infastq: %s' % args.infastq)
+    logger.info('  outbam: "%s"' % args.outbam[0])
+    logger.info('  observed whitelist: "%s"' % args.obswhite[0])
 
-    logging.info('Parsing BAM')
+    logger.info('Building barcode whitelist')
+    build_barcode_dict('atac_pbmc_10k_v1_S1_L001_R2_001.fastq.gz', 'whitelist.tsv', logger=logger)
+
+    logger.info('Parsing BAM')
     #parse_bam('', '', '')
 
 if __name__ == '__main__':

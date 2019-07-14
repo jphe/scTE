@@ -67,7 +67,7 @@ def library(args):
             yield i + tmp
     return
 
-def build_barcode_dict(barcode_filename, save_whitelist=False, gzip_file=True):
+def build_barcode_dict(barcode_filename, save_whitelist=False, expected_whitelist=False, gzip_file=True, logger=False):
     '''
     **Purposse**
         The BAM and the FASTQ are not guaranteed to be in the same order, so I need to make a look up for
@@ -86,24 +86,32 @@ def build_barcode_dict(barcode_filename, save_whitelist=False, gzip_file=True):
     '''
     assert barcode_filename, 'barcode_filename is required'
 
-    logging.info('Building Barcode lookup table')
-
     barcode_lookup = {}
     if gzip_file:
         oh = gzip.open(barcode_filename, 'rt')
     else:
         oh = open(barcode_filename, 'rt')
 
-    for fq in fastq(oh):
+    for idx, fq in enumerate(fastq(oh)):
         barcode_lookup[fq['name']] = fq['seq']
+
+        if (idx+1) % 1000000 == 0:
+            logging.info('Processed: {:,} reads'.format(idx+1))
+            break
+
+    logging.info('Found {:,} barcodes'.format(len(set(barcode_lookup.values()))))
 
     oh.close()
 
-    # if expected_whitelist:
-    # Correct the barcodes for Hamming = 1
+    if expected_whitelist:
+        logger.info('Checking against the expected whitelist and correcting barcodes')
+        raise AsserionError('expected_whitelist not implemented')
+        # Correct the barcodes for Hamming = 1
+    else:
+        logger.warning('Not checking the barcodes against an expected whitelist, barcodes will not be corrected')
 
     if save_whitelist:
-        logging.info('Saving Whitelist')
+        logger.info('Saving Whitelist')
         oh = open(save_whitelist, 'w')
         for k in barcode_lookup.keys():
             oh.write('%s\n' % (k))
