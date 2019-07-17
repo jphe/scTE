@@ -334,12 +334,13 @@ def Countexpression(filename, allelement, genenumber, cellnumber):
     s=time.time()
 
     # Save out the final file
+    
+    gene_seen = list(gene_seen) # Do the sort once;
+    gene_seen.sort()
+    
     res_oh = open('%s.csv'%filename, 'w')
     res_oh.write('barcodes,')
     res_oh.write('%s\n' % (','.join([str(i) for i in gene_seen])))
-
-    gene_seen = list(gene_seen) # Do the sort once;
-    gene_seen.sort()
 
     for k in sorted(res):
         l = ["0"] * len(gene_seen) # Avoid all the appends

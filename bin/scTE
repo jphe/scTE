@@ -15,15 +15,11 @@ from scTE.base import *
 def prepare_parser():
     desc = "hahaha..."
 
-    exmp = "Example: scTE <-i scRNA.sorted.bam> <-g mm10 > <-o out> [--min_genes 200] [--min_counts 400] [-p -10] <-x mm10.exclusive.idx>"
+    exmp = "Example: scTE <-i scRNA.sorted.bam> <-g mm10> <-o out> [--min_genes 200] [--min_counts 400] [-p -10] <-x mm10.exclusive.idx>"
 
     parser = argparse.ArgumentParser(prog='scTE',description=desc, epilog=exmp)
 
-    parser.add_argument('-i','--input', dest='input', type=str, nargs='+', required=True,
-                        help='Input file: BAM/SAM file from CellRanger or STARsolo, the file must be sorted by chromosome position')
-
-    parser.add_argument('-f','--format', metavar='input file format', dest='format', type=str, nargs='?', default='BAM', choices=['BAM','SAM'],
-                        help='Input file format: BAM or SAM. DEFAULT: BAM')
+    optional = parser._action_groups.pop()
 
 #     parser.add_argument('-te', dest='tefile',nargs='+',
 #                         help='Six columns bed file for transposable elements annotation. Need the -gene option. Mutalluy exclusive to -x option')
@@ -31,32 +27,44 @@ def prepare_parser():
 #     parser.add_argument('-gene', dest='genefile',nargs='+',
 #                         help='Gtf file for genes annotation. Need the -te option. Mutalluy exclusive to -x option')
 
-    parser.add_argument('-x', dest='annoglb',nargs='+', required=True,
-                        help='The filename of the index for the reference genome annotation. Mutually exclusive to -te and -gene options')
-
-    parser.add_argument('--min_genes', dest='genenumber',metavar='INT', type=int,default=200,
+    optional.add_argument('--min_genes', dest='genenumber',metavar='INT', type=int,default=200,
                         help='Minimum number of genes expressed required for a cell to pass filtering. Default: 200')
 
-    parser.add_argument('--min_counts', dest='countnumber',metavar='INT', type=int,
+    optional.add_argument('--min_counts', dest='countnumber',metavar='INT', type=int,
                         help='Minimum number of counts required for a cell to pass filtering. Default: 2*min_genes')
 
-    parser.add_argument('--expect-cells', dest='cellnumber',metavar='INT', type=int,  default=10000,
+    optional.add_argument('--expect-cells', dest='cellnumber',metavar='INT', type=int,  default=10000,
                         help='Expected number of cells. Default: 10000')
-
-    parser.add_argument('-g','--genome', metavar='genome', dest='genome', type=str, nargs='?', default='mm10', choices=['hg38','mm10',], required=True,
-                        help='"hg38" for human, "mm10" for mouse, Default: mm10')
+    
+    optional.add_argument('-f','--format', metavar='input file format', dest='format', type=str, nargs='?', default='BAM', choices=['BAM','SAM'],
+                        help='Input file format: BAM or SAM. DEFAULT: BAM')
 
 #     parser.add_argument('-m','--mode', metavar='TEs counting mode', dest='mode', nargs='?', type=str,
 #                         default='exclusive', choices=['inclusive','exclusive'],
 #                         help='How to count TEs expression: inclusive (inclued all reads that can map to TEs), or exclusive (exclued the reads that can map to protein coding genes and lncRNAs).\
 #                         DEFAULT: exclusive')
 
-    parser.add_argument('-o','--out', dest='out', nargs='?', required=True, help='Output file prefix')
-
-    parser.add_argument('-p','--thread', metavar='INT', dest='thread', type=int, default=1,
+    optional.add_argument('-p','--thread', metavar='INT', dest='thread', type=int, default=1,
                         help='Number of threads to use, Default: 1')
 
-    parser.add_argument('-v','--version', action='version', version='%(prog)s 1.0')
+    optional.add_argument('-v','--version', action='version', version='%(prog)s 1.0')
+
+    required = parser.add_argument_group('required arguments')
+
+    required.add_argument('-i','--input', dest='input', type=str, nargs='+', required=True,
+                        help='Input file: BAM/SAM file from CellRanger or STARsolo, the file must be sorted by chromosome position')
+    
+    required.add_argument('-x', dest='annoglb',nargs='+', required=True,
+                        help='The filename of the index for the reference genome annotation.')
+
+    required.add_argument('-g','--genome', metavar='genome', dest='genome', type=str, nargs='?', default='mm10', choices=['hg38','mm10',], required=True,
+                        help='"hg38" for human, "mm10" for mouse')
+
+    required.add_argument('-o','--out', dest='out', nargs='?', required=True, help='Output file prefix')
+
+    parser._action_groups.append(optional)
+    optional = parser.add_argument_group('optional arguments')
+    optional
 
     return parser
 
@@ -74,16 +82,18 @@ def main():
     info(args.argtxt + "\n")
 
     outname = args.out.split('/')[-1:][0]
-
-    info("Processing BAM/SAM files ...%s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
-    Bam2bed(args.input[0], outname)
-
+    
     info("Loading the genome annotation index... %s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 #     if args.genefile and args.tefile:
 #         a = getanno(filename=outname, genefile=args.genefile[0],tefile=args.tefile[0], genome=args.genome, mode=args.mode)
     allelement, chr_list, all_annot, glannot = Readanno(filename=outname, annoglb=args.annoglb[0], genome=args.genome)
     info("Finished loading the genome annotation index... %s \n"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
+    info("Processing BAM/SAM files ...%s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+    Bam2bed(args.input[0], outname)
+    info("Done BAM/SAM files processing ...%s \n"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+
+    info("Splitting ...%s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
     if args.thread == 1: #Single thread path, mainly
         # This is useful for testing optimsations, as the multiprocessing path the profile
         # Just gets locked up in {method 'acquire' of '_thread.lock' objects}
@@ -95,11 +105,9 @@ def main():
         partial_work = partial(splitChr, filename=outname)
         pool.map(partial_work, chr_list)
         whitelist = filterCRs(filename=outname, genenumber=args.genenumber, countnumber=args.countnumber)
-
     info("Finished processing sample files %s \n"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
-
+    
     info("Fetching from the annotation index... %s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
-
     if args.thread == 1: #Single thread path
         for chrom in chr_list:
             align(chr=chrom, filename=outname, all_annot=None, glannot=glannot, whitelist=whitelist)
@@ -112,13 +120,10 @@ def main():
     if not os.path.exists('%s_scTEtmp/o4'%outname):
         os.system('mkdir -p %s_scTEtmp/o4'%outname)
     os.system('gunzip -c -f %s_scTEtmp/o3/%s.*.bed.gz | gzip > %s_scTEtmp/o4/%s.bed.gz' % (outname,outname,outname,outname))
-
-    info("Done fetching... %s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+    info("Done fetching... %s \n"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
     info("Calculating expression... %s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
-
     Countexpression(filename=args.out, allelement=allelement, genenumber=args.genenumber, cellnumber=args.cellnumber)
-
     info("Finished calculating expression %s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
     timeend=datetime.datetime.now()
