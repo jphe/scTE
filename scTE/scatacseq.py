@@ -33,11 +33,26 @@ import sys
 import gzip
 import argparse
 import logging
+import dbm
+import time
+import random
 
 try:
     import pysam
 except ImportError:
     pass # fail silently
+
+def generate_mismatches(seq):
+    """
+    **Purpose**
+        Generate all 1 bp mismatches for the sequence
+    """
+    newseqs = []
+
+    for pos in range(len(seq)):
+        newseqs += list(library([[i] for i in seq[0:pos]] + ["ACGT"] + [[i] for i in seq[pos:-1]]))
+
+    return set(newseqs)
 
 def fastq(file_handle):
     """
@@ -67,7 +82,26 @@ def library(args):
             yield i + tmp
     return
 
-def build_barcode_dict(barcode_filename, save_whitelist=False, expected_whitelist=False, gzip_file=True, logger=False):
+def load_expected_whitelist(filename, logger):
+    """
+    **Purpose**
+        Load the expected whitelist and output a set
+
+    """
+    expected_whitelist = []
+    oh = open(filename, 'rt')
+    for line in oh:
+        expected_whitelist.append(line.strip())
+    oh.close()
+
+    expected_whitelist = set(expected_whitelist)
+
+    logger.info('Found {0:,} expected barcodes'.format(len(expected_whitelist)))
+
+    return expected_whitelist
+
+def build_barcode_dict(barcode_filename, save_whitelist=False, expected_whitelist=False,
+    gzip_file=True, logger=False, ondisk=True):
     '''
     **Purposse**
         The BAM and the FASTQ are not guaranteed to be in the same order, so I need to make a look up for
@@ -86,55 +120,111 @@ def build_barcode_dict(barcode_filename, save_whitelist=False, expected_whitelis
     '''
     assert barcode_filename, 'barcode_filename is required'
 
-    barcode_lookup = {}
+    if expected_whitelist:
+        logger.info('Checking against the expected whitelist and correcting barcodes')
+    else:
+        logger.warning('Not checking the barcodes against an expected whitelist, barcodes will not be corrected')
+
+    bad_barcodes = 0
+    rescued_barcodes = 0
+
+    if ondisk:
+        tmpfilename = './tpm_{0:}_{1:}_{2:}.dbm'.format(barcode_filename, time.time(), random.randint(0, 10000))
+        barcode_lookup = dbm.open(tmpfilename, 'n')
+    else:
+        tmpfilename = None
+        barcode_lookup = {}
+
     if gzip_file:
         oh = gzip.open(barcode_filename, 'rt')
     else:
         oh = open(barcode_filename, 'rt')
 
     for idx, fq in enumerate(fastq(oh)):
-        barcode_lookup[fq['name']] = fq['seq']
+        barcode = fq['seq']
+        if 'N' in barcode: # Discard this barcode
+            bad_barcodes += 1
+            continue
 
-        if (idx+1) % 1000000 == 0:
-            logging.info('Processed: {:,} reads'.format(idx+1))
+        if expected_whitelist and barcode not in expected_whitelist:
+            # barcode not in the whitelist
+            # see if we can resuce it:
+            rescued = False
+            for mm in generate_mismatches(barcode):
+                if mm in expected_whitelist:
+                    barcode = mm # Corrected
+                    rescued_barcodes += 1
+                    rescued = True
+                    break
+            if not rescued:
+                bad_barcodes += 1 # unrecoverable
+                continue
+
+        name = fq['name'].split(' ')[0].lstrip('@') # Any other types seen?
+        barcode_lookup[name] = barcode
+
+        if (idx+1) % 10000000 == 0:
+            logger.info('Processed: {:,} barcode reads'.format(idx+1))
             break
-
-    logging.info('Found {:,} barcodes'.format(len(set(barcode_lookup.values()))))
-
     oh.close()
 
-    if expected_whitelist:
-        logger.info('Checking against the expected whitelist and correcting barcodes')
-        raise AsserionError('expected_whitelist not implemented')
-        # Correct the barcodes for Hamming = 1
-    else:
-        logger.warning('Not checking the barcodes against an expected whitelist, barcodes will not be corrected')
+    logger.info('Processed: {:,} barcode reads from the FASTQ'.format(idx+1))
+    logger.info('Bad reads with no barcode {:,} reads'.format(bad_barcodes))
+    logger.info('Rescued {:,} reads'.format(rescued_barcodes))
+    logger.info('Found {:,} valid reads'.format(len(set(barcode_lookup.keys())), ))
+    logger.info('Found {:,} valid barcodes'.format(len(set(barcode_lookup.values())), ))
 
     if save_whitelist:
-        logger.info('Saving Whitelist')
-        oh = open(save_whitelist, 'w')
-        for k in barcode_lookup.keys():
+        logger.info('Saved whitelist: {0}'.format(save_whitelist))
+        oh = open(save_whitelist, 'wt')
+        for k in sorted(set(barcode_lookup.values())):
             oh.write('%s\n' % (k))
+
     oh.close()
 
-    return barcode_lookup
+    return barcode_lookup, expected_whitelist, tmpfilename
 
-def parse_bam(infile, barcode_filename, outfile):
-    inbam = pysam.open(infile)
-    outfile = pysam.open(outfile)
-    barcodes = fastq()
+def parse_bam(infile, barcode_lookup, outfile, barcode_corrector, logger):
+    """
+    **Purpose**
+        Parse the BAM file and insert the CR: and YR: tags
+    """
+    inbam = pysam.AlignmentFile(infile[0], 'rb')
+    outfile = pysam.AlignmentFile(outfile, 'wb', template=inbam)
 
-    umi_iterator = library(["ACGT"] * 14)
+    #umi_iterator = library(["ACGT"] * 14)
 
-    for idx, read in emnumerate(inbam):
+    not_paired = 0 # unpaired ATAC
+    no_matching_barcode = 0 # No matching read:barcode pair
+    corrected_barcodes = 0
+
+    for idx, read in enumerate(inbam):
+        if not read.is_paired:
+            not_paired += 1
+            continue
+
         # UMI iterator
-        try:
-            umi = umi_iterator.__next__()
-        except StopIteration:
-            umi_iterator = library(["ACGT"] * 14)
+        #try:
+        #    umi = umi_iterator.__next__()
+        #except StopIteration:
+        #    umi_iterator = library(["ACGT"] * 14)
 
-        # Check the reads:
+        # Add the barcode:
+        # See if the read is in the lookup:
+        if read.query_name in barcode_lookup:
+            read.set_tags([('CR:Z', barcode_lookup[read.query_name]),])
+            outfile.write(read)
+        else:
+            no_matching_barcode += 1
+
+        if (idx+1) % 1000000 == 0:
+            logger.info('Processed: {:,} reads'.format(idx+1))
+            break
 
     inbam.close()
     outfile.close()
 
+    logger.info('Processed {:,} reads from the BAM'.format(idx+1))
+    logger.info('Matched {0:,} ({1:.1f}%) reads to a barcode'.format(idx - no_matching_barcode, (idx - no_matching_barcode) / idx * 100.0))
+    logger.info('Save BAM ouput file: {0}'.format(infile[0]))
+    return
