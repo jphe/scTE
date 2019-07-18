@@ -40,7 +40,7 @@ except ImportError:
     sys.quit()
 
 sys.path.append(os.path.join(os.path.split(sys.argv[0])[0], '../'))
-from scTE.scatacseq import build_barcode_dict
+from scTE.scatacseq import build_barcode_dict, parse_bam, load_expected_whitelist
 
 # Command-line options;
 def prepare_parser():
@@ -54,6 +54,7 @@ def prepare_parser():
     # Optional:
     optional = parser._action_groups.pop()
     optional.add_argument('-e', '--expwhite', nargs=1, required=False, help='A txt file containing the expected whitelist of barcodes to correct the observed barcodes with')
+    optional.add_argument('--ondisk', action='store_true', required=False, help='Do everything in memory (faster, but you will need a lot!, or do it on disk (slower, but no memory requirement')
 
     required = parser.add_argument_group('required arguments')
 
@@ -63,9 +64,6 @@ def prepare_parser():
     required.add_argument('-w', '--obswhite', nargs=1, required=True, help='A txt file to save the observed barcode whitelist to')
 
     parser._action_groups.append(optional)
-
-    optional = parser.add_argument_group('optional arguments')
-    optional
 
     logging.basicConfig(level=logging.DEBUG,
                     format='%(levelname)-8s: %(message)s',
@@ -84,16 +82,26 @@ def main():
     logger = parser.log
 
     logger.info('Arguments:')
-    logger.info('  inbam: %s' % args.inbam)
-    logger.info('  infastq: %s' % args.infastq)
+    logger.info('  inbam: %s' % args.inbam[0])
+    logger.info('  infastq: %s' % args.infastq[0])
     logger.info('  outbam: "%s"' % args.outbam[0])
     logger.info('  observed whitelist: "%s"' % args.obswhite[0])
+    if args.expwhite:
+        logger.info('  expected whitelist: "%s"' % args.expwhite[0])
+    logger.info('  On disk: %s' % args.ondisk)
+
+    expected_whitelist = None
+    if args.expwhite:
+        expected_whitelist = load_expected_whitelist(args.expwhite[0], logger=logger)
 
     logger.info('Building barcode whitelist')
-    build_barcode_dict('atac_pbmc_10k_v1_S1_L001_R2_001.fastq.gz', 'whitelist.tsv', logger=logger)
+    barcode_lookup, barcode_corrector, tmpfilename = build_barcode_dict('atac_pbmc_10k_v1_S1_L001_R2_001.fastq.gz', 'whitelist.tsv', expected_whitelist=expected_whitelist, logger=logger, ondisk=args.ondisk)
 
     logger.info('Parsing BAM')
-    #parse_bam('', '', '')
+    parse_bam(infile=args.inbam, outfile=args.outbam[0], barcode_lookup=barcode_lookup, barcode_corrector=barcode_corrector, logger=logger)
+
+    if args.ondisk: # Cleanup the DB
+        os.remove(tmpfilename)
 
 if __name__ == '__main__':
     try:
