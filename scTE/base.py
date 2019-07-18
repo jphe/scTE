@@ -119,7 +119,7 @@ def Readanno(filename, annoglb, genome):
     if genome in ['mm10']:
         chr_list = ['chr'+ str(i) for i in range(1,20) ] + [ 'chrX','chrY', 'chrM' ]
     elif genome in ['hg38']:
-        chr_list = ['chr'+ str(i) for i in range(1,22) ] + [ 'chrX','chrY', 'chrM' ]
+        chr_list = ['chr'+ str(i) for i in range(1,23) ] + [ 'chrX','chrY', 'chrM' ]
     return(allelement, chr_list, annoglb, glannot)
 
 def Bam2bed(filename,out):
