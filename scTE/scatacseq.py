@@ -197,6 +197,7 @@ def parse_bam(infile, barcode_lookup, outfile, barcode_corrector, logger):
     not_paired = 0 # unpaired ATAC
     no_matching_barcode = 0 # No matching read:barcode pair
     corrected_barcodes = 0
+    pairs_too_far_apart = 0
 
     quick_lookup = {}
 
@@ -207,6 +208,10 @@ def parse_bam(infile, barcode_lookup, outfile, barcode_corrector, logger):
 
         if not read.is_paired:
             not_paired += 1
+            continue
+
+        if read.query_alignment_length > 1000:
+            pairs_too_far_apart += 1
             continue
 
         # UMI iterator
@@ -237,7 +242,8 @@ def parse_bam(infile, barcode_lookup, outfile, barcode_corrector, logger):
     outfile.close()
 
     logger.info('Processed {:,} reads from the BAM'.format(idx+1))
-    logger.info('{:,} reads were unpaired'.format(idx+1))
+    logger.info('{:,} reads were unpaired'.format(not_paired+1))
+    logger.info('{:,} read pairs were too far apart'.format(pairs_too_far_apart+1))
     logger.info('Matched {0:,} ({1:.1f}%) reads to a barcode'.format(idx - no_matching_barcode, (idx - no_matching_barcode) / idx * 100.0))
     logger.info('Save BAM ouput file: {0}'.format(infile[0]))
     return
