@@ -10,7 +10,7 @@ from math import log
 sys.path.append(os.path.join(os.path.split(sys.argv[0])[0], '../'))
 from scTE.miniglbase import genelist, glload, location
 
-chr_list = [ str(k) for k in  list(range(1,50))] + ['X','Y'] # delete M, MT
+chr_list = [ str(k) for k in  list(range(1,50))] + ['X','Y', 'M']
 
 def read_opts(parser):
     args = parser.parse_args()

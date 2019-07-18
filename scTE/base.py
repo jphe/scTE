@@ -128,13 +128,13 @@ def Bam2bed(filename,out):
 
     # Test to see which columns the barcode is in:
     o = open('%s_scTEtmp/%s.test.sh'%(out,out),'w')
-    st = 'samtools view -@ 2 ../%s | head | awk \'{OFS="\t"}{for(i=1;i<=NF;i++)if($i~/CR:Z:/)n=i}{for(i=1;i<=NF;i++)if($i~/UR:Z:/)m=i}{print n,m}\' > %s.test'%(filename,out)
+    st = 'samtools view -@ 2 %s | head | awk \'{OFS="\t"}{for(i=1;i<=NF;i++)if($i~/CR:Z:/)n=i}{for(i=1;i<=NF;i++)if($i~/UR:Z:/)m=i}{print n,m}\' > %s_scTEtmp/%s.test'%(filename,out,out)
     o.write(st)
     o.close()
 
     os.system('sh %s_scTEtmp/%s.test.sh'%(out,out))
 
-    o = open('%s_scTEtmp/%s.test.sh'%(out,out),'rU')
+    o = open('%s_scTEtmp/%s.test'%(out,out),'rU')
     for l in o:
         t = l.strip().split('\t')
         n=int(t[0])
