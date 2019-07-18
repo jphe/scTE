@@ -198,7 +198,13 @@ def parse_bam(infile, barcode_lookup, outfile, barcode_corrector, logger):
     no_matching_barcode = 0 # No matching read:barcode pair
     corrected_barcodes = 0
 
+    quick_lookup = {}
+
     for idx, read in enumerate(inbam):
+        if (idx+1) % 1000000 == 0:
+            logger.info('Processed: {:,} reads'.format(idx+1))
+            break
+
         if not read.is_paired:
             not_paired += 1
             continue
@@ -213,18 +219,25 @@ def parse_bam(infile, barcode_lookup, outfile, barcode_corrector, logger):
         # See if the read is in the lookup:
         if read.query_name in barcode_lookup:
             read.set_tags([('CR:Z', barcode_lookup[read.query_name]),])
-            outfile.write(read)
         else:
             no_matching_barcode += 1
+            continue
 
-        if (idx+1) % 1000000 == 0:
-            logger.info('Processed: {:,} reads'.format(idx+1))
-            break
+        # The BAM file is not garunteed to be in order, but the pairs should be pretty close, so I just need to check for the other pair on a simple lookup list
+        # and only write out the pairs once I got two
+        if read.query_name in quick_lookup: # I found it's pair
+            outfile.write(read)
+            outfile.write(quick_lookup[read.query_name])
+            del quick_lookup[read.query_name]
+        else:
+            # no pair, store it for later
+            quick_lookup[read.query_name] = read
 
     inbam.close()
     outfile.close()
 
     logger.info('Processed {:,} reads from the BAM'.format(idx+1))
+    logger.info('{:,} reads were unpaired'.format(idx+1))
     logger.info('Matched {0:,} ({1:.1f}%) reads to a barcode'.format(idx - no_matching_barcode, (idx - no_matching_barcode) / idx * 100.0))
     logger.info('Save BAM ouput file: {0}'.format(infile[0]))
     return
