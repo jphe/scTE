@@ -127,27 +127,26 @@ def Bam2bed(filename,out):
         os.system('mkdir -p %s_scTEtmp/o1'%out)
 
     # Test to see which columns the barcode is in:
-    o = open('%s_scTEtmp/%s.test.sh'%(out,out),'w')
-    st = 'samtools view -@ 2 %s | head | awk \'{OFS="\t"}{for(i=1;i<=NF;i++)if($i~/CR:Z:/)n=i}{for(i=1;i<=NF;i++)if($i~/UR:Z:/)m=i}{print n,m}\' > %s_scTEtmp/%s.test'%(filename,out,out)
-    o.write(st)
-    o.close()
-
-    os.system('sh %s_scTEtmp/%s.test.sh'%(out,out))
-
-    o = open('%s_scTEtmp/%s.test'%(out,out),'rU')
-    for l in o:
-        t = l.strip().split('\t')
-        n=int(t[0])
-        m=int(t[1])
-    o.close()
-
-#     os.system('rm %s.test*'%out)
+#     o = open('%s_scTEtmp/%s.test.sh'%(out,out),'w')
+#     st = 'samtools view -@ 2 %s | head | awk \'{OFS="\t"}{for(i=1;i<=NF;i++)if($i~/CR:Z:/)n=i}{for(i=1;i<=NF;i++)if($i~/UR:Z:/)m=i}{print n,m}\' > %s_scTEtmp/%s.test'%(filename,out,out)
+#     o.write(st)
+#     o.close()
+# 
+#     os.system('sh %s_scTEtmp/%s.test.sh'%(out,out))
+# 
+#     o = open('%s_scTEtmp/%s.test'%(out,out),'rU')
+#     for l in o:
+#         t = l.strip().split('\t')
+#         n=int(t[0])
+#         m=int(t[1])
+#     o.close()
 
     if sys.platform == 'darwin': # Mac OSX has BSD sed
-        os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{print $3,$4,$4+100,$%s,$%s}\' | sed -E \'s/CR:Z://g\' | sed -E \'s/UR:Z://g\'| gzip -c > %s_scTEtmp/o1/%s.bed.gz'%(filename,n,m,out,out))
+#         os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{print $3,$4,$4+100,$%s,$%s}\' | sed -E \'s/CR:Z://g\' | sed -E \'s/UR:Z://g\'| gzip -c > %s_scTEtmp/o1/%s.bed.gz'%(filename,n,m,out,out))
+        os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{for(i=12;i<=NF;i++)if($i~/CR:Z:/)n=i}{for(i=12;i<=NF;i++)if($i~/UR:Z:/)m=i}{print $3,$4,$4+100,$n,$m}\' | sed -E \'s/CR:Z://g\' | sed -E \'s/UR:Z://g\'| gzip -c > %s_scTEtmp/o1/%s.bed.gz'%(filename,out,out)) # need ~triple time
     else:
-        os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{print $3,$4,$4+100,$%s,$%s}\' | sed -r \'s/CR:Z://g\' | sed -r \'s/UR:Z://g\'| gzip > %s_scTEtmp/o1/%s.bed.gz'%(filename,n,m,out,out))
-#     os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{for(i=1;i<=NF;i++)if($i~/CR:Z:/)n=i}{for(i=1;i<=NF;i++)if($i~/UR:Z:/)m=i}{print $3,$4,$4+100,$n,$m}\' | sed -r \'s/CR:Z://g\' | sed -r \'s/UR:Z://g\'| gzip > %s_scTEtmp/o1/%s.bed.gz'%(filename,out,out)) # need ~triple time
+#         os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{print $3,$4,$4+100,$%s,$%s}\' | sed -r \'s/CR:Z://g\' | sed -r \'s/UR:Z://g\'| gzip > %s_scTEtmp/o1/%s.bed.gz'%(filename,n,m,out,out))
+        os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{for(i=12;i<=NF;i++)if($i~/CR:Z:/)n=i}{for(i=12;i<=NF;i++)if($i~/UR:Z:/)m=i}{print $3,$4,$4+100,$n,$m}\' | sed -r \'s/CR:Z://g\' | sed -r \'s/UR:Z://g\'| gzip > %s_scTEtmp/o1/%s.bed.gz'%(filename,out,out)) # need ~triple time
 
 
 def splitAllChrs(chromosome_list, filename, genenumber, countnumber):
