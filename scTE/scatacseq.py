@@ -165,7 +165,6 @@ def build_barcode_dict(barcode_filename, save_whitelist=False, expected_whitelis
 
         if (idx+1) % 10000000 == 0:
             logger.info('Processed: {:,} barcode reads'.format(idx+1))
-            break
     oh.close()
 
     logger.info('Processed: {:,} barcode reads from the FASTQ'.format(idx+1))
@@ -202,7 +201,7 @@ def parse_bam(infile, barcode_lookup, outfile, barcode_corrector, logger):
     quick_lookup = {}
 
     for idx, read in enumerate(inbam):
-        if (idx+1) % 1000000 == 0:
+        if (idx+1) % 10000000 == 0:
             logger.info('Processed: {:,} reads'.format(idx+1))
             break
 
