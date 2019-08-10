@@ -38,7 +38,13 @@ def prepare_parser():
     
     optional.add_argument('-f','--format', metavar='input file format', dest='format', type=str, nargs='?', default='BAM', choices=['BAM','SAM'],
                         help='Input file format: BAM or SAM. DEFAULT: BAM')
-    
+
+    optional.add_argument('-CB', dest='CB', type=str, nargs='?', default='True', choices=['True','False'],
+                        help='Set to false to ignore for cell barcodes, it is useful for SMART-seq. If you set CB=False, it also will set UMI=False by default, Default: True')
+
+    optional.add_argument('-UMI', dest='UMI', type=str, nargs='?', default='True', choices=['True','False'],
+                        help='Set to false to ignore for UMI, it is useful for SMART-seq. Default: True')
+
     optional.add_argument('--keeptmp', dest='keeptmp', type=str, nargs='?', default='False', choices=['True','False'],
                         help='Keep the _scTEtmp file, which is useful for debugging. Default: False')
                         
@@ -93,7 +99,20 @@ def main():
     info("Finished loading the genome annotation index... %s \n"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
     info("Processing BAM/SAM files ...%s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
-    Bam2bed(args.input[0], outname)
+    
+    if len(args.input) == 1 and ',' in args.input[0]:
+        args.input=args.input[0].split(',')
+        
+    if len(args.input) > 1:
+        pool=multiprocessing.Pool(processes=args.thread)
+        partial_work = partial(Para_bam2bed, CB=args.CB, UMI=args.UMI,out=outname)
+        pool.map(partial_work, args.input)
+
+        if not os.path.exists('%s_scTEtmp/o1'%outname):
+            os.system('mkdir -p %s_scTEtmp/o1'%outname)
+        os.system('gunzip -c -f %s_scTEtmp/o0/*.bed.gz | gzip > %s_scTEtmp/o1/%s.bed.gz' % (outname,outname,outname))
+    else:
+        Bam2bed(args.input[0], args.CB, args.UMI, outname)
     info("Done BAM/SAM files processing ...%s \n"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
     info("Splitting ...%s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
@@ -105,7 +124,7 @@ def main():
     else:
         info('Executing multiple thread path with %s threads' % args.thread)
         pool=multiprocessing.Pool(processes=args.thread)
-        partial_work = partial(splitChr, filename=outname)
+        partial_work = partial(splitChr, filename=outname, CB=args.CB, UMI=args.UMI)
         pool.map(partial_work, chr_list)
         whitelist = filterCRs(filename=outname, genenumber=args.genenumber, countnumber=args.countnumber)
     info("Finished processing sample files %s \n"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
@@ -113,7 +132,7 @@ def main():
     info("Fetching from the annotation index... %s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
     if args.thread == 1: #Single thread path
         for chrom in chr_list:
-            align(chr=chrom, filename=outname, all_annot=None, glannot=glannot, whitelist=whitelist)
+            align(chr=chrom, filename=outname, all_annot=None, glannot=glannot, whitelist=whitelist, CB=args.CB)
 
     else: # Multiprocessing path:
         pool = multiprocessing.Pool(processes=args.thread)
