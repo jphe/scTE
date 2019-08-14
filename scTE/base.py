@@ -128,23 +128,23 @@ def Bam2bed(filename, CB, UMI, out):
 
     sample=filename.split('/')[-1].replace('.bam','')
     if sys.platform == 'darwin': # Mac OSX has BSD sed
-        if UMI == 'False':
-            if CB =='False':
-                os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{print $3,$4,$4+100,"%s"}\' | sed -E \'s/^/chr/g\' | gzip -c > %s_scTEtmp/o1/%s.bed.gz'%(filename,out,out,sample))
+        if not UMI:
+            if not CB:
+                os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{print $3,$4,$4+100,"%s"}\' | gzip -c > %s_scTEtmp/o1/%s.bed.gz'%(filename,out,out,sample))
             else:
-                os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{for(i=12;i<=NF;i++)if($i~/CR:Z:/)n=i}{print $3,$4,$4+100,$n}\' | sed -E \'s/CR:Z://g\' | sed -E \'s/^/chr/g\' | gzip -c > %s_scTEtmp/o1/%s.bed.gz'%(filename,out,out))
+                os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{for(i=12;i<=NF;i++)if($i~/CR:Z:/)n=i}{print $3,$4,$4+100,$n}\' | sed -E \'s/CR:Z://g\' | gzip -c > %s_scTEtmp/o1/%s.bed.gz'%(filename,out,out))
         else:
 #             os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{print $3,$4,$4+100,$%s,$%s}\' | sed -E \'s/CR:Z://g\' | sed -E \'s/UR:Z://g\'| gzip -c > %s_scTEtmp/o1/%s.bed.gz'%(filename,n,m,out,out))
-            os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{for(i=12;i<=NF;i++)if($i~/CR:Z:/)n=i}{for(i=12;i<=NF;i++)if($i~/UR:Z:/)m=i}{print $3,$4,$4+100,$n,$m}\' | sed -E \'s/CR:Z://g\' | sed -E \'s/UR:Z://g\'| sed -E \'s/^/chr/g\' | gzip -c > %s_scTEtmp/o1/%s.bed.gz'%(filename,out,out)) 
+            os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{for(i=12;i<=NF;i++)if($i~/CR:Z:/)n=i}{for(i=12;i<=NF;i++)if($i~/UR:Z:/)m=i}{print $3,$4,$4+100,$n,$m}\' | sed -E \'s/CR:Z://g\' | sed -E \'s/UR:Z://g\'| gzip -c > %s_scTEtmp/o1/%s.bed.gz'%(filename,out,out))
     else:
-        if UMI =='False':
-            if CB =='False':
-                os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{print $3,$4,$4+100,"%s"}\' | sed -r \'s/CR:Z://g\' | sed -r \'s/^/chr/g\'| gzip > %s_scTEtmp/o1/%s.bed.gz'%(filename,out,out,sample))
+        if not UMI:
+            if not CB:
+                os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{print $3,$4,$4+100,"%s"}\' | sed -r \'s/CR:Z://g\' | gzip > %s_scTEtmp/o1/%s.bed.gz'%(filename,out,out,sample))
             else:
-                os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{for(i=12;i<=NF;i++)if($i~/CR:Z:/)n=i}}{print $3,$4,$4+100,$n,$m}\' | sed -r \'s/CR:Z://g\' | sed -r \'s/^/chr/g\' | gzip > %s_scTEtmp/o1/%s.bed.gz'%(filename,out,out)) 
+                os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{for(i=12;i<=NF;i++)if($i~/CR:Z:/)n=i}}{print $3,$4,$4+100,$n,$m}\' | sed -r \'s/CR:Z://g\' |  gzip > %s_scTEtmp/o1/%s.bed.gz'%(filename,out,out))
         else:
 #             os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{print $3,$4,$4+100,$%s,$%s}\' | sed -r \'s/CR:Z://g\' | sed -r \'s/UR:Z://g\'| gzip > %s_scTEtmp/o1/%s.bed.gz'%(filename,n,m,out,out))
-            os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{for(i=12;i<=NF;i++)if($i~/CR:Z:/)n=i}{for(i=12;i<=NF;i++)if($i~/UR:Z:/)m=i}{print $3,$4,$4+100,$n,$m}\' | sed -r \'s/CR:Z://g\' | sed -r \'s/UR:Z://g\' | sed -r \'s/^/chr/g\' | gzip > %s_scTEtmp/o1/%s.bed.gz'%(filename,out,out)) 
+            os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{for(i=12;i<=NF;i++)if($i~/CR:Z:/)n=i}{for(i=12;i<=NF;i++)if($i~/UR:Z:/)m=i}{print $3,$4,$4+100,$n,$m}\' | sed -r \'s/CR:Z://g\' | sed -r \'s/UR:Z://g\' | gzip > %s_scTEtmp/o1/%s.bed.gz'%(filename,out,out))
 
 def Para_bam2bed(filename, CB, UMI, out):
     if not os.path.exists('%s_scTEtmp/o0'%out):
@@ -152,28 +152,47 @@ def Para_bam2bed(filename, CB, UMI, out):
 
     sample=filename.split('/')[-1].replace('.bam','')
     if sys.platform == 'darwin': # Mac OSX has BSD sed
-        if UMI == 'False':
-            if CB =='False':
-                os.system('samtools view -@ 1 %s | awk \'{OFS="\t"}{print $3,$4,$4+100,"%s"}\' | sed -E \'s/^/chr/g\' | gzip -c > %s_scTEtmp/o0/%s.bed.gz'%(filename,sample, out,sample))
+        if not UMI:
+            if not CB:
+                os.system('samtools view -@ 1 %s | awk \'{OFS="\t"}{print $3,$4,$4+100,"%s"}\' | gzip -c > %s_scTEtmp/o0/%s.bed.gz'%(filename,sample, out,sample))
             else:
-                os.system('samtools view -@ 1 %s | awk \'{OFS="\t"}{for(i=12;i<=NF;i++)if($i~/CR:Z:/)n=i}{print $3,$4,$4+100,$n}\' | sed -E \'s/CR:Z://g\' | sed -E \'s/^/chr/g\' | gzip -c > %s_scTEtmp/o0/%s.bed.gz'%(filename,out,sample))
+                os.system('samtools view -@ 1 %s | awk \'{OFS="\t"}{for(i=12;i<=NF;i++)if($i~/CR:Z:/)n=i}{print $3,$4,$4+100,$n}\' | sed -E \'s/CR:Z://g\' | gzip -c > %s_scTEtmp/o0/%s.bed.gz'%(filename,out,sample))
         else:
-            os.system('samtools view -@ 1 %s | awk \'{OFS="\t"}{for(i=12;i<=NF;i++)if($i~/CR:Z:/)n=i}{for(i=12;i<=NF;i++)if($i~/UR:Z:/)m=i}{print $3,$4,$4+100,$n,$m}\' | sed -E \'s/CR:Z://g\' | sed -E \'s/UR:Z://g\' | sed -E \'s/^/chr/g\'| gzip -c > %s_scTEtmp/o0/%s.bed.gz'%(filename,out,sample))
+            os.system('samtools view -@ 1 %s | awk \'{OFS="\t"}{for(i=12;i<=NF;i++)if($i~/CR:Z:/)n=i}{for(i=12;i<=NF;i++)if($i~/UR:Z:/)m=i}{print $3,$4,$4+100,$n,$m}\' | sed -E \'s/CR:Z://g\' | sed -E \'s/UR:Z://g\' | gzip -c > %s_scTEtmp/o0/%s.bed.gz'%(filename,out,sample))
     else:
-        if UMI =='False':
-            if CB =='False':
-                os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{print $3,$4,$4+100,"%s"}\' | sed -r \'s/CR:Z://g\' | sed -r \'s/^/chr/g\'| gzip > %s_scTEtmp/o0/%s.bed.gz'%(filename,sample,out,sample))
+        if not UMI:
+            if not CB:
+                os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{print $3,$4,$4+100,"%s"}\' | sed -r \'s/CR:Z://g\' | gzip > %s_scTEtmp/o0/%s.bed.gz'%(filename,sample,out,sample))
             else:
-                os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{for(i=12;i<=NF;i++)if($i~/CR:Z:/)n=i}}{print $3,$4,$4+100,$n,$m}\' | sed -r \'s/CR:Z://g\' | sed -r \'s/^/chr/g\' | gzip > %s_scTEtmp/o0/%s.bed.gz'%(filename,out,sample)) 
+                os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{for(i=12;i<=NF;i++)if($i~/CR:Z:/)n=i}}{print $3,$4,$4+100,$n,$m}\' | sed -r \'s/CR:Z://g\' | gzip > %s_scTEtmp/o0/%s.bed.gz'%(filename,out,sample))
         else:
-            os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{for(i=12;i<=NF;i++)if($i~/CR:Z:/)n=i}{for(i=12;i<=NF;i++)if($i~/UR:Z:/)m=i}{print $3,$4,$4+100,$n,$m}\' | sed -r \'s/CR:Z://g\' | sed -r \'s/UR:Z://g\' | sed -r \'s/^/chr/g\' | gzip > %s_scTEtmp/o0/%s.bed.gz'%(filename,out,sample)) 
+            os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{for(i=12;i<=NF;i++)if($i~/CR:Z:/)n=i}{for(i=12;i<=NF;i++)if($i~/UR:Z:/)m=i}{print $3,$4,$4+100,$n,$m}\' | sed -r \'s/CR:Z://g\' | sed -r \'s/UR:Z://g\' | gzip > %s_scTEtmp/o0/%s.bed.gz'%(filename,out,sample))
 
-def splitAllChrs(chromosome_list, filename, genenumber, countnumber):
+def splitAllChrs(chromosome_list, filename, genenumber, countnumber, CB=True, UMI=True):
     '''
     **Purpose**
         Split the data into separate beds, and count up all the times each barcode appears
 
         This variant uses more memory, but does it all at the same time and gets the filtered whitelist for free
+
+    **Arguments**
+        chromosome_list
+            List of chromosome names
+
+        filename (Required)
+            filename stub to use for tmp files
+
+        genenumber (Required)
+            Minimum number of genes expressed required for a cell to pass filtering
+
+        countnumber (Required)
+            Minimum number of counts required for a cell to pass filtering.
+
+        CB (optional, default=True)
+            use the barcode
+
+        UMI (optional, default=True)
+            use the UMI
 
     **Returns**
         The barcode whitelist
@@ -186,54 +205,65 @@ def splitAllChrs(chromosome_list, filename, genenumber, countnumber):
 
     CRs = defaultdict(int)
 
-    uniques = {chrom: set([]) for chrom in chromosome_list}
+    if UMI:
+        uniques = {chrom: set([]) for chrom in chromosome_list}
 
     # Make a BED for each chromosome
     for line in file_handle_in:
         t = line.strip().split('\t')
         chrom = t[0]
-        if line in uniques[chrom]:
-            continue
-        uniques[chrom].add(line)
+        if 'chr' not in chrom:
+            chrom = 'chr{0}'.format(chrom) # Now enforcing chrN-style names
 
-        CR = t[3]
+        if UMI:
+            if line in uniques[chrom]:
+                continue
+            uniques[chrom].add(line)
+
+        if CB:
+            CR = t[3]
+            CRs[CR] += 1
 
         file_handles_out[chrom].write(line)
-        CRs[CR] += 1
 
     [file_handles_out[k].close() for k in file_handles_out]
     file_handle_in.close()
 
     # Because this does it all in one go, you can just filter the whitelist here now, and don't need the .count. file;
-    sortcb = sorted(CRs.items(), key=lambda item:item[1], reverse=True) # Sorts by the count;
+    if CB:
+        sortcb = sorted(CRs.items(), key=lambda item:item[1], reverse=True) # Sorts by the count;
 
     if not countnumber:
         mincounts = 2 * genenumber
     else:
         mincounts = countnumber
 
-    whitelist = []
-    for n, k in enumerate(sortcb):
-        if k[1] < mincounts:
-            break
-        whitelist.append(k[0])
 
-    return set(whitelist)
+    if CB: # No whitelist for no CB:
+        whitelist = []
+        for n, k in enumerate(sortcb):
+            if k[1] < mincounts:
+                break
+            whitelist.append(k[0])
+
+        return set(whitelist)
+    else:
+        return None
 
 def splitChr(chr, filename, CB, UMI):
     if not os.path.exists('%s_scTEtmp/o2'%filename):
         os.system('mkdir -p %s_scTEtmp/o2'%filename)
 
-    if CB == 'False':
+    if not CB: # C1-style data is a cell per BAM, so no barcode;
         if chr == 'chr1':
             os.system('gunzip -c -f %s_scTEtmp/o1/%s.bed.gz | grep -v chr1\'[0-9]\' | grep %s | gzip -c > %s_scTEtmp/o2/%s.%s.bed.gz'%(filename,filename,chr,filename,filename,chr))
         elif chr == 'chr2':
             os.system('gunzip -c -f %s_scTEtmp/o1/%s.bed.gz | grep -v chr2\'[0-9]\' | grep %s  | gzip -c > %s_scTEtmp/o2/%s.%s.bed.gz'%(filename,filename,chr,filename,filename,chr))
         else:
             os.system('gunzip -c -f %s_scTEtmp/o1/%s.bed.gz | grep %s | gzip -c > %s_scTEtmp/o2/%s.%s.bed.gz'%(filename,filename,chr,filename,filename,chr))
-        
+
     else:
-        if UMI == 'False': # did not remove the potential PCR duplicates for scRNA-seq
+        if not UMI: # did not remove the potential PCR duplicates for scRNA-seq
             if chr == 'chr1':
                 os.system('gunzip -c -f %s_scTEtmp/o1/%s.bed.gz | grep -v chr1\'[0-9]\' | grep %s | gzip -c > %s_scTEtmp/o2/%s.%s.bed.gz'%(filename,filename,chr,filename,filename,chr))
             elif chr == 'chr2':
@@ -262,7 +292,7 @@ def splitChr(chr, filename, CB, UMI):
         o.write('%s\t%s\n'%(k,CRs[k]))
     o.close()
 
-def align(chr, filename, all_annot, glannot, whitelist):
+def align(chr, filename, all_annot, glannot, whitelist, CB):
     '''
     **Purpose**
         For each read, align it to the index and assign a TE, gene.
@@ -284,14 +314,14 @@ def align(chr, filename, all_annot, glannot, whitelist):
     for line in oh:
         t = line.strip().split('\t')
 
-        barcode = t[3]
-        
-        if barcode not in whitelist:
-            continue
-        if barcode not in res:
-            res[barcode] = defaultdict(int)
+        if CB:
+            barcode = t[3]
+            if barcode not in whitelist:
+                continue
+            if barcode not in res:
+                res[barcode] = defaultdict(int)
 
-        chrom = t[0].replace('chr', '')
+        #chrom = t[0].replace('chr', '') # Don't need as each align is already split for each chrom;
         left = int(t[1])
         rite = int(t[2])
 
@@ -370,10 +400,10 @@ def Countexpression(filename, allelement, genenumber, cellnumber):
     s=time.time()
 
     # Save out the final file
-    
+
     gene_seen = list(gene_seen) # Do the sort once;
     gene_seen.sort()
-    
+
     res_oh = open('%s.csv'%filename, 'w')
     res_oh.write('barcodes,')
     res_oh.write('%s\n' % (','.join([str(i) for i in gene_seen])))
@@ -388,7 +418,7 @@ def Countexpression(filename, allelement, genenumber, cellnumber):
 
     print('Detect %s cells expressed at least %s genes, results output to %s.csv'%(len(res),genenumber,filename))
 
-def filterCRs(filename,genenumber,countnumber):
+def filterCRs(filename, genenumber, countnumber):
     CRs = {}
     for f in glob.glob('%s_scTEtmp/o2/%s*.count.gz'%(filename,filename)):
         o = gzip.open(f,'rb')
