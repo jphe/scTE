@@ -201,7 +201,7 @@ def splitAllChrs(chromosome_list, filename, genenumber, countnumber, CB=True, UM
         os.system('mkdir -p %s_scTEtmp/o2'%filename)
 
     file_handle_in = gzip.open('%s_scTEtmp/o1/%s.bed.gz' % (filename,filename), 'rt')
-    file_handles_out= {chr: gzip.open('%s_scTEtmp/o2/%s.%s.bed.gz' % (filename,filename,chr), 'wt') for chr in chromosome_list}
+    file_handles_out = {chr: gzip.open('%s_scTEtmp/o2/%s.%s.bed.gz' % (filename,filename,chr), 'wt') for chr in chromosome_list}
 
     CRs = defaultdict(int)
 
@@ -214,6 +214,9 @@ def splitAllChrs(chromosome_list, filename, genenumber, countnumber, CB=True, UM
         chrom = t[0]
         if 'chr' not in chrom:
             chrom = 'chr{0}'.format(chrom) # Now enforcing chrN-style names
+
+        if chrom not in uniques: # An outbreak of bad chrom names;
+            continue
 
         if UMI:
             if line in uniques[chrom]:
