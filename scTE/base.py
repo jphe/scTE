@@ -215,7 +215,7 @@ def splitAllChrs(chromosome_list, filename, genenumber, countnumber, CB=True, UM
         if 'chr' not in chrom:
             chrom = 'chr{0}'.format(chrom) # Now enforcing chrN-style names
 
-        if chrom not in uniques: # An outbreak of bad chrom names;
+        if chrom not in file_handles_out: # An outbreak of bad chrom names
             continue
 
         if UMI:
