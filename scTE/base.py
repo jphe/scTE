@@ -164,7 +164,7 @@ def Para_bam2bed(filename, CB, UMI, out):
             if not CB:
                 os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{print $3,$4,$4+100,"%s"}\' | sed -r \'s/CR:Z://g\' | gzip > %s_scTEtmp/o0/%s.bed.gz'%(filename,sample,out,sample))
             else:
-                os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{for(i=12;i<=NF;i++)if($i~/CR:Z:/)n=i}}{print $3,$4,$4+100,$n,$m}\' | sed -r \'s/CR:Z://g\' | gzip > %s_scTEtmp/o0/%s.bed.gz'%(filename,out,sample))
+                os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{for(i=12;i<=NF;i++)if($i~/CR:Z:/)n=i}{print $3,$4,$4+100,$n,$m}\' | sed -r \'s/CR:Z://g\' | gzip > %s_scTEtmp/o0/%s.bed.gz'%(filename,out,sample))
         else:
             os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{for(i=12;i<=NF;i++)if($i~/CR:Z:/)n=i}{for(i=12;i<=NF;i++)if($i~/UR:Z:/)m=i}{print $3,$4,$4+100,$n,$m}\' | sed -r \'s/CR:Z://g\' | sed -r \'s/UR:Z://g\' | gzip > %s_scTEtmp/o0/%s.bed.gz'%(filename,out,sample))
 
