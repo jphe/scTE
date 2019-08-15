@@ -203,7 +203,7 @@ def parse_bam(infile, barcode_lookup, outfile, barcode_corrector, logger):
     for idx, read in enumerate(inbam):
         if (idx+1) % 10000000 == 0:
             logger.info('Processed: {:,} reads'.format(idx+1))
-            break
+            #break
 
         if not read.is_paired:
             not_paired += 1
