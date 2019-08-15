@@ -172,7 +172,7 @@ def splitAllChrs(chromosome_list, filename, genenumber, countnumber, CB=True, UM
         The barcode whitelist
     '''
     CB = True # no need CB option for this step, all files already add the CB in the step1
-    
+
     if not os.path.exists('%s_scTEtmp/o2' % filename):
         os.system('mkdir -p %s_scTEtmp/o2'%filename)
 
@@ -181,6 +181,8 @@ def splitAllChrs(chromosome_list, filename, genenumber, countnumber, CB=True, UM
 
     CRs = defaultdict(int)
 
+    chromosome_list = set([c.replace('chr', '') for c in chromosome_list])
+
     if UMI:
         uniques = {chrom: set([]) for chrom in chromosome_list}
 
@@ -188,11 +190,13 @@ def splitAllChrs(chromosome_list, filename, genenumber, countnumber, CB=True, UM
     for line in file_handle_in:
         t = line.strip().split('\t')
         chrom = t[0]
-        if 'chr' not in chrom:
-            chrom = 'chr{0}'.format(chrom) # Now enforcing chrN-style names
-        
+
         if chrom not in chromosome_list: # remove the unusual chromosomes, and also sometimes may cause problem for chrMT as it scTE thought it should be chrM
-            continue
+            # Force chrMT -> chrM
+            if chrom == 'MT':
+                chrom = 'M'
+            else:
+                continue
 
         if chrom not in file_handles_out: # An outbreak of bad chrom names
             continue
@@ -205,35 +209,26 @@ def splitAllChrs(chromosome_list, filename, genenumber, countnumber, CB=True, UM
         else:
             CRs[t[3]] += 1
 
-#         if CB:
-#             CR = t[3]
-#             CRs[CR] += 1
-
         file_handles_out[chrom].write(line)
 
     [file_handles_out[k].close() for k in file_handles_out]
     file_handle_in.close()
 
     # Because this does it all in one go, you can just filter the whitelist here now, and don't need the .count. file;
-    if CB:
-        sortcb = sorted(CRs.items(), key=lambda item:item[1], reverse=True) # Sorts by the count;
+    sortcb = sorted(CRs.items(), key=lambda item:item[1], reverse=True) # Sorts by the count;
 
     if not countnumber:
         mincounts = 2 * genenumber
     else:
         mincounts = countnumber
 
-    if CB: # No whitelist for no CB:
-        whitelist = []
-        for n, k in enumerate(sortcb):
-            if k[1] < mincounts:
-                break
-            whitelist.append(k[0])
-        
-        print(len(set(whitelist)))
-        return set(whitelist)
-    else:
-        return None
+    whitelist = []
+    for n, k in enumerate(sortcb):
+        if k[1] < mincounts:
+            break
+        whitelist.append(k[0])
+
+    return set(whitelist)
 
 def filterCRs(filename, genenumber, countnumber):
     CRs = defaultdict(int)
@@ -256,7 +251,8 @@ def filterCRs(filename, genenumber, countnumber):
         if k[1] < mincounts:
             break
         whitelist.append(k[0])
-    print(len(whitelist))
+
+    #print(len(whitelist))
     return set(whitelist)
 
 def splitChr(chr, filename, CB, UMI):
