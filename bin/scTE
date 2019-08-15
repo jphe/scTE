@@ -95,17 +95,21 @@ def main():
     if len(args.input) == 1 and ',' in args.input[0]:
         args.input=args.input[0].split(',')
 
+    if not os.path.exists('%s_scTEtmp/o1'%outname):
+        os.system('mkdir -p %s_scTEtmp/o1'%outname)
+
+    for k in args.input:
+        checkCBUMI(filename=k,out=outname,CB=args.CB,UMI=args.UMI)
+
     if len(args.input) > 1:
         print('parabam2bed')
         pool=multiprocessing.Pool(processes=args.thread)
         partial_work = partial(Para_bam2bed, CB=args.CB, UMI=args.UMI,out=outname)
         pool.map(partial_work, args.input)
 
-        if not os.path.exists('%s_scTEtmp/o1'%outname):
-            os.system('mkdir -p %s_scTEtmp/o1'%outname)
         os.system('gunzip -c -f %s_scTEtmp/o0/*.bed.gz | gzip > %s_scTEtmp/o1/%s.bed.gz' % (outname,outname,outname))
-    else:
-        Bam2bed(args.input[0], args.CB, args.UMI, outname)
+#     else:
+#         Bam2bed(args.input[0], args.CB, args.UMI, outname)
     info("Done BAM/SAM files processing ...%s \n"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
     info("Splitting ...%s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
