@@ -8,7 +8,6 @@ import collections
 from math import log
 sys.path.append(os.path.join(os.path.split(sys.argv[0])[0], '../'))
 from scTE.miniglbase import genelist, glload, location
-#from glbase3 import genelist, glload, location
 from scTE.annotation import annoGtf
 from scTE.base import *
 
@@ -20,12 +19,6 @@ def prepare_parser():
     parser = argparse.ArgumentParser(prog='scTE',description=desc, epilog=exmp)
 
     optional = parser._action_groups.pop()
-
-#     parser.add_argument('-te', dest='tefile',nargs='+',
-#                         help='Six columns bed file for transposable elements annotation. Need the -gene option. Mutalluy exclusive to -x option')
-#
-#     parser.add_argument('-gene', dest='genefile',nargs='+',
-#                         help='Gtf file for genes annotation. Need the -te option. Mutalluy exclusive to -x option')
 
     optional.add_argument('--min_genes', dest='genenumber',metavar='INT', type=int,default=200,
                         help='Minimum number of genes expressed required for a cell to pass filtering. Default: 200')
@@ -47,11 +40,6 @@ def prepare_parser():
 
     optional.add_argument('--keeptmp', dest='keeptmp', type=str, nargs='?', default='False', choices=['True','False'],
                         help='Keep the _scTEtmp file, which is useful for debugging. Default: False')
-
-#     parser.add_argument('-m','--mode', metavar='TEs counting mode', dest='mode', nargs='?', type=str,
-#                         default='exclusive', choices=['inclusive','exclusive'],
-#                         help='How to count TEs expression: inclusive (inclued all reads that can map to TEs), or exclusive (exclued the reads that can map to protein coding genes and lncRNAs).\
-#                         DEFAULT: exclusive')
 
     optional.add_argument('-p','--thread', metavar='INT', dest='thread', type=int, default=1,
                         help='Number of threads to use, Default: 1')
@@ -87,7 +75,7 @@ def main():
     if args.UMI == 'True': args.UMI = True
     else: args.UMI = False
     if args.CB == 'True': args.CB = True
-    else: args.UMI = False
+    else: args.CB = False
 
     info = args.info
     error = args.error
@@ -99,8 +87,6 @@ def main():
     outname = args.out.split('/')[-1:][0]
 
     info("Loading the genome annotation index... %s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
-#     if args.genefile and args.tefile:
-#         a = getanno(filename=outname, genefile=args.genefile[0],tefile=args.tefile[0], genome=args.genome, mode=args.mode)
     allelement, chr_list, all_annot, glannot = Readanno(filename=outname, annoglb=args.annoglb[0], genome=args.genome)
     info("Finished loading the genome annotation index... %s \n"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
@@ -110,6 +96,7 @@ def main():
         args.input=args.input[0].split(',')
 
     if len(args.input) > 1:
+        print('parabam2bed')
         pool=multiprocessing.Pool(processes=args.thread)
         partial_work = partial(Para_bam2bed, CB=args.CB, UMI=args.UMI,out=outname)
         pool.map(partial_work, args.input)
@@ -132,10 +119,7 @@ def main():
         pool=multiprocessing.Pool(processes=args.thread)
         partial_work = partial(splitChr, filename=outname, CB=args.CB, UMI=args.UMI)
         pool.map(partial_work, chr_list)
-        if args.CB:
-            whitelist = filterCRs(filename=outname, genenumber=args.genenumber, countnumber=args.countnumber)
-        else:
-            whitelist = None
+        whitelist = filterCRs(filename=outname, genenumber=args.genenumber, countnumber=args.countnumber)
 
     info("Finished processing sample files %s \n"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
