@@ -176,12 +176,12 @@ def splitAllChrs(chromosome_list, filename, genenumber, countnumber, CB=True, UM
     if not os.path.exists('%s_scTEtmp/o2' % filename):
         os.system('mkdir -p %s_scTEtmp/o2'%filename)
 
+    chromosome_list = set([c.replace('chr', '') for c in chromosome_list])
+
     file_handle_in = gzip.open('%s_scTEtmp/o1/%s.bed.gz' % (filename,filename), 'rt')
-    file_handles_out = {chr: gzip.open('%s_scTEtmp/o2/%s.%s.bed.gz' % (filename,filename,chr), 'wt') for chr in chromosome_list}
+    file_handles_out = {chr: gzip.open('%s_scTEtmp/o2/%s.chr%s.bed.gz' % (filename,filename,chr), 'wt') for chr in chromosome_list}
 
     CRs = defaultdict(int)
-
-    chromosome_list = set([c.replace('chr', '') for c in chromosome_list])
 
     if UMI:
         uniques = {chrom: set([]) for chrom in chromosome_list}
@@ -189,17 +189,14 @@ def splitAllChrs(chromosome_list, filename, genenumber, countnumber, CB=True, UM
     # Make a BED for each chromosome
     for line in file_handle_in:
         t = line.strip().split('\t')
-        chrom = t[0]
+        chrom = t[0].replace('chr', '') # strip chr
 
-        if chrom not in chromosome_list: # remove the unusual chromosomes, and also sometimes may cause problem for chrMT as it scTE thought it should be chrM
+        if chrom not in chromosome_list: # remove the unusual chromosomes
             # Force chrMT -> chrM
             if chrom == 'MT':
                 chrom = 'M'
             else:
                 continue
-
-        if chrom not in file_handles_out: # An outbreak of bad chrom names
-            continue
 
         if UMI:
             if line in uniques[chrom]:
