@@ -95,7 +95,7 @@ def main():
         expected_whitelist = load_expected_whitelist(args.expwhite[0], logger=logger)
 
     logger.info('Building barcode whitelist')
-    barcode_lookup, barcode_corrector, tmpfilename = build_barcode_dict('atac_pbmc_10k_v1_S1_L001_R2_001.fastq.gz', 'whitelist.tsv', expected_whitelist=expected_whitelist, logger=logger, ondisk=args.ondisk)
+    barcode_lookup, barcode_corrector, tmpfilename = build_barcode_dict(args.infastq[0], args.obswhite[0], expected_whitelist=expected_whitelist, logger=logger, ondisk=args.ondisk)
 
     logger.info('Parsing BAM')
     parse_bam(infile=args.inbam, outfile=args.outbam[0], barcode_lookup=barcode_lookup, barcode_corrector=barcode_corrector, logger=logger)
