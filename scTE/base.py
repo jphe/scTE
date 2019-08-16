@@ -119,33 +119,29 @@ def checkCBUMI(filename,out,CB,UMI):
                 logging.error("The input file %s has no UMI information,  plese make sure the aligner have add the UMI key, or set UMI to False" % filename)
                 sys.exit(1)
 
-def Bam2bed(filename, CB, UMI, out):
-    
+def Bam2bed(filename, CB, UMI, out, num_threads):
     if not os.path.exists('%s_scTEtmp/o1'%out):
         os.system('mkdir -p %s_scTEtmp/o1'%out)
 
     sample=filename.split('/')[-1].replace('.bam','')
     if sys.platform == 'darwin': # Mac OSX has BSD sed
-        if not UMI:
-            if not CB:
-                os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{print $3,$4,$4+100,"%s"}\' | sed -E \'s/^chr//g\'| gzip -c > %s_scTEtmp/o1/%s.bed.gz'%(filename,out,out,sample))
-            else:
-                os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{for(i=12;i<=NF;i++)if($i~/CR:Z:/)n=i}{print $3,$4,$4+100,$n}\' | sed -E \'s/CR:Z://g\' | sed -E \'s/^chr//g\' | gzip -c > %s_scTEtmp/o1/%s.bed.gz'%(filename,out,out))
-        else:
-            os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{for(i=12;i<=NF;i++)if($i~/CR:Z:/)n=i}{for(i=12;i<=NF;i++)if($i~/UR:Z:/)m=i}{print $3,$4,$4+100,$n,$m}\' | sed -E \'s/CR:Z://g\' | sed -E \'s/UR:Z://g\'| sed -E \'s/^chr//g\' | gzip -c > %s_scTEtmp/o1/%s.bed.gz'%(filename,out,out))
+        switch = '-E'
     else:
-        if not UMI:
-            if not CB:
-                os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{print $3,$4,$4+100,"%s"}\' | sed -r \'s/CR:Z://g\' | sed -r \'s/^chr//g\' | gzip > %s_scTEtmp/o1/%s.bed.gz'%(filename,out,out,sample))
-            else:
-                os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{for(i=12;i<=NF;i++)if($i~/CR:Z:/)n=i}{print $3,$4,$4+100,$n,$m}\' | sed -r \'s/CR:Z://g\' | sed -r \'s/^chr//g\'|  gzip > %s_scTEtmp/o1/%s.bed.gz'%(filename,out,out))
+        switch = '-r'
+
+    if not UMI:
+        if not CB:
+            # Put the sample name in the barcode slot
+            os.system('samtools view -@ %s %s | awk \'{OFS="\t"}{print $3,$4,$4+100,"%s"}\' | sed %s \'s/^chr//g\'| gzip -c > %s_scTEtmp/o1/%s.bed.gz' % (num_threads, filename, out, switch, out, sample))
         else:
-            os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{for(i=12;i<=NF;i++)if($i~/CR:Z:/)n=i}{for(i=12;i<=NF;i++)if($i~/UR:Z:/)m=i}{print $3,$4,$4+100,$n,$m}\' | sed -r \'s/CR:Z://g\' | sed -r \'s/UR:Z://g\' | sed -r \'s/^chr//g\'| gzip > %s_scTEtmp/o1/%s.bed.gz'%(filename,out,out))
+            os.system('samtools view -@ %s %s | awk \'{OFS="\t"}{for(i=12;i<=NF;i++)if($i~/CR:Z:/)n=i}{print $3,$4,$4+100,$n}\' | sed %s \'s/CR:Z://g\' | sed %s \'s/^chr//g\' | gzip -c > %s_scTEtmp/o1/%s.bed.gz' % (num_threads, filename, switch, switch, out, out))
+    else:
+        os.system('samtools view -@ %s %s | awk \'{OFS="\t"}{for(i=12;i<=NF;i++)if($i~/CR:Z:/)n=i}{for(i=12;i<=NF;i++)if($i~/UR:Z:/)m=i}{print $3,$4,$4+100,$n,$m}\' | sed %s \'s/CR:Z://g\' | sed %s \'s/UR:Z://g\'| sed %s \'s/^chr//g\' | gzip -c > %s_scTEtmp/o1/%s.bed.gz' % (num_threads, filename, switch, switch, switch, out,out))
 
 def Para_bam2bed(filename, CB, UMI, out):
     if not os.path.exists('%s_scTEtmp/o0'%out):
         os.system('mkdir -p %s_scTEtmp/o0'%out)
-    
+
     sample=filename.split('/')[-1].replace('.bam','')
     if sys.platform == 'darwin': # Mac OSX has BSD sed
         if not UMI:
@@ -164,7 +160,7 @@ def Para_bam2bed(filename, CB, UMI, out):
         else:
             os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{for(i=12;i<=NF;i++)if($i~/CR:Z:/)n=i}{for(i=12;i<=NF;i++)if($i~/UR:Z:/)m=i}{print $3,$4,$4+100,$n,$m}\' | sed -r \'s/CR:Z://g\' | sed -r \'s/UR:Z://g\' | sed -r \'s/^chr//g\' | gzip > %s_scTEtmp/o0/%s.bed.gz'%(filename,out,sample))
 
-def splitAllChrs(chromosome_list, filename, genenumber, countnumber, CB=True, UMI=True):
+def splitAllChrs(chromosome_list, filename, genenumber, countnumber, UMI=True):
     '''
     **Purpose**
         Split the data into separate beds, and count up all the times each barcode appears
@@ -184,16 +180,12 @@ def splitAllChrs(chromosome_list, filename, genenumber, countnumber, CB=True, UM
         countnumber (Required)
             Minimum number of counts required for a cell to pass filtering.
 
-        CB (optional, default=True)
-            use the barcode
-
         UMI (optional, default=True)
             use the UMI
 
     **Returns**
         The barcode whitelist
     '''
-    CB = True # no need CB option for this step, all files already add the CB in the step1
 
     if not os.path.exists('%s_scTEtmp/o2' % filename):
         os.system('mkdir -p %s_scTEtmp/o2'%filename)
@@ -211,19 +203,7 @@ def splitAllChrs(chromosome_list, filename, genenumber, countnumber, CB=True, UM
     # Make a BED for each chromosome
     for line in file_handle_in:
         t = line.strip().split('\t')
-<<<<<<< HEAD
         chrom = t[0].replace('chr', '') # strip chr
-=======
-        chrom = t[0]
-        if 'chr' not in chrom:
-            chrom = 'chr{0}'.format(chrom) # Now enforcing chrN-style names
-        
-        if chrom not in chromosome_list: # remove the unusual chromosomes
-            if chrom == 'chrMT':
-                chrom = 'chrM'
-            else:
-                continue
->>>>>>> 1330cd305ec60c619f169b7a662a4310c817bb86
 
         if chrom not in chromosome_list: # remove the unusual chromosomes
             # Force chrMT -> chrM
@@ -387,7 +367,6 @@ def align(chr, filename, all_annot, glannot, whitelist, CB):
             oh.write('%s\t%s\t%s\n' % (bc, gene, res[bc][gene]))
     oh.close()
 
-
 def Countexpression(filename, allelement, genenumber, cellnumber):
     gene_seen = allelement
 
@@ -443,7 +422,7 @@ def Countexpression(filename, allelement, genenumber, cellnumber):
         res_oh.write('%s,%s\n' % (k, ','.join(l)))
     res_oh.close()
 
-    print('Detect %s cells expressed at least %s genes, results output to %s.csv'%(len(res),genenumber,filename))
+    return len(res), genenumber, filename
 
 def timediff(timestart, timestop):
         t  = (timestop-timestart)

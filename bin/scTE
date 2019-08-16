@@ -100,16 +100,17 @@ def main():
 
     for k in args.input:
         checkCBUMI(filename=k,out=outname,CB=args.CB,UMI=args.UMI)
+    info("BAM file appears to be valid")
 
     if len(args.input) > 1:
-        print('parabam2bed')
+        info('Using parabam2bed as more than 1 input BAM')
         pool=multiprocessing.Pool(processes=args.thread)
         partial_work = partial(Para_bam2bed, CB=args.CB, UMI=args.UMI,out=outname)
         pool.map(partial_work, args.input)
 
         os.system('gunzip -c -f %s_scTEtmp/o0/*.bed.gz | gzip > %s_scTEtmp/o1/%s.bed.gz' % (outname,outname,outname))
-#     else:
-#         Bam2bed(args.input[0], args.CB, args.UMI, outname)
+    else:
+        Bam2bed(args.input[0], args.CB, args.UMI, outname, args.thread)
     info("Done BAM/SAM files processing ...%s \n"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
     info("Splitting ...%s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
@@ -117,7 +118,7 @@ def main():
         # This is useful for testing optimsations, as the multiprocessing path the profile
         # Just gets locked up in {method 'acquire' of '_thread.lock' objects}
         info('Executing single thread path')
-        whitelist = splitAllChrs(chr_list, filename=outname, genenumber=args.genenumber, countnumber=args.countnumber, CB=args.CB, UMI=args.UMI)
+        whitelist = splitAllChrs(chr_list, filename=outname, genenumber=args.genenumber, countnumber=args.countnumber, UMI=args.UMI)
     else:
         info('Executing multiple thread path with %s threads' % args.thread)
         pool=multiprocessing.Pool(processes=args.thread)
@@ -143,7 +144,8 @@ def main():
     info("Done fetching... %s \n"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
     info("Calculating expression... %s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
-    Countexpression(filename=args.out, allelement=allelement, genenumber=args.genenumber, cellnumber=args.cellnumber)
+    len_res, genenumber, filename = Countexpression(filename=args.out, allelement=allelement, genenumber=args.genenumber, cellnumber=args.cellnumber)
+    info('Detect {0} cells expressed at least {1} genes, results output to {2}.csv'.format(len_res, genenumber, filename))
     info("Finished calculating expression %s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
     if args.keeptmp == 'True':
@@ -151,8 +153,8 @@ def main():
     else:
         os.system('rm -rf %s_scTEtmp'%outname)
 
-    timeend=datetime.datetime.now()
-    info("Done with %s\n"%timediff(timestart,timeend))
+    timeend = datetime.datetime.now()
+    info("Done with %s\n" % timediff(timestart,timeend))
 
 if __name__ == '__main__':
     try:
