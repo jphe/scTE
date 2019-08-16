@@ -8,6 +8,7 @@ from collections import defaultdict
 from math import log
 from scTE.miniglbase import genelist, glload, location
 from scTE.annotation import annoGtf
+import subprocess
 
 def read_opts(parser):
     args = parser.parse_args()
@@ -98,7 +99,28 @@ def Readanno(filename, annoglb, genome):
         chr_list = ['chr'+ str(i) for i in range(1,23) ] + [ 'chrX','chrY', 'chrM' ]
     return(allelement, chr_list, annoglb, glannot)
 
+def checkCBUMI(filename,out,CB,UMI):
+    if CB:
+        subprocess.Popen('samtools view %s | head -100| grep "CR:Z:" | wc -l > %s_scTEtmp/o1/testCR.txt'%(filename,out),shell=True)
+        time.sleep(2) #subprocess need take some time
+        o=open('%s_scTEtmp/o1/testCR.txt'%(out),'rU')
+        for l in o:
+            l=l.strip()
+            if int(l) < 100:
+                logging.error("The input file %s has no cell barcodes information, plese make sure the aligner have add the cell barcode key, or set CB to False"%filename)
+                sys.exit(1)
+    if UMI:
+        subprocess.Popen('samtools view %s | head -100| grep "UR:Z:" | wc -l > %s_scTEtmp/o1/testUMI.txt'%(filename,out),shell=True)
+        time.sleep(2)
+        o=open('%s_scTEtmp/o1/testUMI.txt'%(out),'rU')
+        for l in o:
+            l=l.strip()
+            if int(l) < 100:
+                logging.error("The input file %s has no UMI information,  plese make sure the aligner have add the UMI key, or set UMI to False" % filename)
+                sys.exit(1)
+
 def Bam2bed(filename, CB, UMI, out):
+    
     if not os.path.exists('%s_scTEtmp/o1'%out):
         os.system('mkdir -p %s_scTEtmp/o1'%out)
 
@@ -123,7 +145,7 @@ def Bam2bed(filename, CB, UMI, out):
 def Para_bam2bed(filename, CB, UMI, out):
     if not os.path.exists('%s_scTEtmp/o0'%out):
         os.system('mkdir -p %s_scTEtmp/o0'%out)
-
+    
     sample=filename.split('/')[-1].replace('.bam','')
     if sys.platform == 'darwin': # Mac OSX has BSD sed
         if not UMI:
@@ -189,7 +211,19 @@ def splitAllChrs(chromosome_list, filename, genenumber, countnumber, CB=True, UM
     # Make a BED for each chromosome
     for line in file_handle_in:
         t = line.strip().split('\t')
+<<<<<<< HEAD
         chrom = t[0].replace('chr', '') # strip chr
+=======
+        chrom = t[0]
+        if 'chr' not in chrom:
+            chrom = 'chr{0}'.format(chrom) # Now enforcing chrN-style names
+        
+        if chrom not in chromosome_list: # remove the unusual chromosomes
+            if chrom == 'chrMT':
+                chrom = 'chrM'
+            else:
+                continue
+>>>>>>> 1330cd305ec60c619f169b7a662a4310c817bb86
 
         if chrom not in chromosome_list: # remove the unusual chromosomes
             # Force chrMT -> chrM
