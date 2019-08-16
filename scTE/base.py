@@ -28,7 +28,7 @@ def read_opts(parser):
     args.argtxt ="\n".join(("Parameter list:", \
                 "Sample = %s" % (args.out), \
                 "Genome = %s" % (args.genome), \
-                "Reference annotation index = %s" %(args.annoglb), \
+                "Reference annotation index = %s" %(args.annoglb[0]), \
                 "Minimum number of genes required = %s" % (args.genenumber), \
                 "Minimum number of counts required = %s"% (args.countnumber),\
                 "Number of threads = %s " % (args.thread),\
@@ -143,22 +143,19 @@ def Para_bam2bed(filename, CB, UMI, out):
         os.system('mkdir -p %s_scTEtmp/o0'%out)
 
     sample=filename.split('/')[-1].replace('.bam','')
+    
     if sys.platform == 'darwin': # Mac OSX has BSD sed
-        if not UMI:
-            if not CB:
-                os.system('samtools view -@ 1 %s | awk \'{OFS="\t"}{print $3,$4,$4+100,"%s"}\' | sed -E \'s/^chr//g\' | gzip -c > %s_scTEtmp/o0/%s.bed.gz'%(filename,sample, out,sample))
-            else:
-                os.system('samtools view -@ 1 %s | awk \'{OFS="\t"}{for(i=12;i<=NF;i++)if($i~/CR:Z:/)n=i}{print $3,$4,$4+100,$n}\' | sed -E \'s/CR:Z://g\' | sed -E \'s/^chr//g\' | gzip -c > %s_scTEtmp/o0/%s.bed.gz'%(filename,out,sample))
-        else:
-            os.system('samtools view -@ 1 %s | awk \'{OFS="\t"}{for(i=12;i<=NF;i++)if($i~/CR:Z:/)n=i}{for(i=12;i<=NF;i++)if($i~/UR:Z:/)m=i}{print $3,$4,$4+100,$n,$m}\' | sed -E \'s/CR:Z://g\' | sed -E \'s/UR:Z://g\' | sed -E \'s/^chr//g\' | gzip -c > %s_scTEtmp/o0/%s.bed.gz'%(filename,out,sample))
+        switch = '-E'
     else:
-        if not UMI:
-            if not CB:
-                os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{print $3,$4,$4+100,"%s"}\' | sed -r \'s/^chr//g\' | gzip > %s_scTEtmp/o0/%s.bed.gz'%(filename,sample,out,sample))
-            else:
-                os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{for(i=12;i<=NF;i++)if($i~/CR:Z:/)n=i}{print $3,$4,$4+100,$n,$m}\' | sed -r \'s/CR:Z://g\' | sed -r \'s/^chr//g\' | gzip > %s_scTEtmp/o0/%s.bed.gz'%(filename,out,sample))
+        switch = '-r'
+    
+    if not UMI:
+        if not CB:
+            os.system('samtools view %s | awk \'{OFS="\t"}{print $3,$4,$4+100,"%s"}\' | sed %s \'s/^chr//g\' | gzip > %s_scTEtmp/o0/%s.bed.gz'%(filename, sample, switch, out, sample))
         else:
-            os.system('samtools view -@ 2 %s | awk \'{OFS="\t"}{for(i=12;i<=NF;i++)if($i~/CR:Z:/)n=i}{for(i=12;i<=NF;i++)if($i~/UR:Z:/)m=i}{print $3,$4,$4+100,$n,$m}\' | sed -r \'s/CR:Z://g\' | sed -r \'s/UR:Z://g\' | sed -r \'s/^chr//g\' | gzip > %s_scTEtmp/o0/%s.bed.gz'%(filename,out,sample))
+            os.system('samtools view %s | awk \'{OFS="\t"}{for(i=12;i<=NF;i++)if($i~/CR:Z:/)n=i}{print $3,$4,$4+100,$n,$m}\' | sed %s \'s/CR:Z://g\' | sed %s \'s/^chr//g\' | gzip > %s_scTEtmp/o0/%s.bed.gz'%(filename, switch, switch, out,sample))
+    else:
+        os.system('samtools view %s | awk \'{OFS="\t"}{for(i=12;i<=NF;i++)if($i~/CR:Z:/)n=i}{for(i=12;i<=NF;i++)if($i~/UR:Z:/)m=i}{print $3,$4,$4+100,$n,$m}\' | sed %s \'s/CR:Z://g\' | sed %s \'s/UR:Z://g\' | sed %s \'s/^chr//g\' | gzip > %s_scTEtmp/o0/%s.bed.gz'%(filename, switch, switch, switch, out,sample))
 
 def splitAllChrs(chromosome_list, filename, genenumber, countnumber, UMI=True):
     '''

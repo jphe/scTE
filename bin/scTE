@@ -100,7 +100,7 @@ def main():
 
     for k in args.input:
         checkCBUMI(filename=k,out=outname,CB=args.CB,UMI=args.UMI)
-    info("BAM file appears to be valid")
+    info("Input SAM/BAM file appears to be valid")
 
     if len(args.input) > 1:
         info('Using parabam2bed as more than 1 input BAM')
