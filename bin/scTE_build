@@ -84,8 +84,8 @@ def readGtf(filename):
 def genomeIndex(genome, mode, tefile, genefile, outname, geneurls, teurls):
 
     if not genefile: #Download twice for double check, as sometines wget may stops on the way
-        os.system('wget -c %s'%geneurls)
-        os.system('wget -c %s'%geneurls)
+        os.system('wget -c -t 0 -T 5 %s'%geneurls)
+        os.system('wget -c -t 0 -T 5 %s'%geneurls)
         genefilename = geneurls.split('/')[-1:][0]
     else:
         genefilename = genefile
@@ -96,8 +96,8 @@ def genomeIndex(genome, mode, tefile, genefile, outname, geneurls, teurls):
     clean = cleanexon(a[1]) 
     
     if not tefile:
-        os.system('wget -c %s'%teurls)
-        os.system('wget -c %s'%teurls)
+        os.system('wget -c -t 0 -T 5 %s'%teurls)
+        os.system('wget -c -t 0 -T 5 %s'%teurls)
         tefilename = teurls.split('/')[-1:][0]
         teform ={'force_tsv': True, 'loc': 'location(chr=column[5], left=column[6], right=column[7])', 'annot': 10}
     else:
@@ -145,6 +145,9 @@ def genomeIndex(genome, mode, tefile, genefile, outname, geneurls, teurls):
                 left = int(t[6])
                 rite = int(t[7])
                 name = t[10]
+                clas=t[11]
+                if clas not in ['DNA','LINE','LTR','SINE','Satellite','Retroposon']:
+                    continue
             else:
                 chr = t[0].replace('chr', '')
                 left = int(t[1])
@@ -195,12 +198,24 @@ def genomeIndex(genome, mode, tefile, genefile, outname, geneurls, teurls):
         genes = genelist() 
         genes.load_list(raw)
 
+        teform ={'force_tsv': True, 'loc': 'location(chr=column[5], left=column[6], right=column[7])', 'annot': 10, 'clas':11}
         if tefilename.endswith('.gz'):
             TEs = genelist(tefilename, format=teform, gzip=True)
         else:
             TEs = genelist(tefilename, format=teform)
         
-        all_annot = genes + TEs
+        keep=[]
+        for id,item in enumerate(TEs):
+            if item['clas'] not in ['DNA','LINE','LTR','SINE','Satellite','Retroposon']:
+                continue
+            tmp=item.copy()
+            del tmp['clas']
+            keep.append(tmp)
+
+        gls=genelist()
+        gls.load_list(keep)
+        
+        all_annot = genes + gls
         
         if not outname:
             all_annot.save('%s.inclusive.idx'%genome)
@@ -222,21 +237,29 @@ def prepare_parser():
     
     parser = argparse.ArgumentParser(prog='scTE_build',description=desc, epilog=exmp)
     
-    parser.add_argument('-te', dest='tefile',nargs='+',
+    optional = parser._action_groups.pop()
+    
+    optional.add_argument('-te', dest='tefile',nargs='+',
                         help='Six columns bed file for transposable elements annotation. Need the -gene option. Mutalluy exclusive to -x option')
 
-    parser.add_argument('-gene', dest='genefile',nargs='+',
+    optional.add_argument('-gene', dest='genefile',nargs='+',
                         help='Gtf file for genes annotation. Need the -te option. Mutalluy exclusive to -x option')
+                        
+    optional.add_argument('-g','--genome', metavar='genome', dest='genome',type=str, nargs='?', choices=['hg38','mm10'],required=True,
+                        help='Possible Genomes: mm10 (mouse), hg38 (human)')
     
-    parser.add_argument('-m','--mode', metavar='TEs counting mode', dest='mode', nargs='?', type=str,
+    optional.add_argument('-o','--out', dest='out', nargs='?', help='Output file prefix, Default: the genome name')
+    
+    required = parser.add_argument_group('required arguments')
+    
+    required.add_argument('-m','--mode', metavar='TEs counting mode', dest='mode', nargs='?', type=str,
                         default='exclusive', choices=['inclusive','exclusive'],
                         help='How to count TEs expression: inclusive (inclued all reads that can map to TEs), or exclusive (exclued the reads that can map to protein coding genes and lncRNAs).\
                         DEFAULT: exclusive')
-
-    parser.add_argument('-g','--genome', metavar='genome', dest='genome',type=str, nargs='?', choices=['hg38','mm10',],required=True,
-                        help='Possible Genomes: mm10 (mouse), hg38 (human)')
     
-    parser.add_argument('-o','--out', dest='out', nargs='?', help='Output file prefix, Default: the genome name')
+    parser._action_groups.append(optional)
+    optional = parser.add_argument_group('optional arguments')
+    optional
     
     return parser
 

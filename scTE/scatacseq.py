@@ -29,7 +29,7 @@ See also: bin/pack_scatacseq
 
 '''
 
-import sys
+import sys,os
 import gzip
 import argparse
 import logging
@@ -81,6 +81,37 @@ def library(args):
         for tmp in library(args[1:]):
             yield i + tmp
     return
+
+def atacBam2bed(filename, out, CB, UMI, num_threads):
+
+    sample=filename.split('/')[-1].replace('.bam','')
+
+    if sys.platform == 'darwin': # Mac OSX has BSD sed
+        switch = '-E'
+    else:
+        switch = '-r'
+
+    if not CB:
+        # Put the sample name in the barcode slot
+        os.system('bamToBed -i %s -bedpe | awk -F ["\t":] \'{OFS="\t"}{print $1,$2,$6,"%s"}\' | sed %s \'s/^chr//g\' | gzip -c > %s_scTEtmp/o1/%s.bed.gz' % (filename, sample,switch, out, out))
+    else:
+        os.system('bamToBed -i %s -bedpe | awk -F ["\t":] \'{OFS="\t"}{print $1,$2,$6,$7}\'  | sed %s \'s/^chr//g\' | gzip -c > %s_scTEtmp/o1/%s.bed.gz' % (filename, switch, out, out))
+
+def para_atacBam2bed(filename, CB, out):
+    if not os.path.exists('%ss_scTEtmp/o0'%out):
+        os.system('mkdir -p %s_scTEtmp/o0'%out)
+
+    sample=filename.split('/')[-1].replace('.bam','')
+
+    if sys.platform == 'darwin': # Mac OSX has BSD sed
+        switch = '-E'
+    else:
+        switch = '-r'
+
+    if not CB:
+        os.system('bamToBed -i %s -bedpe | awk -F ["\t":] \'{OFS="\t"}{print $1,$2,$6,"%s"}\' | sed %s \'s/^chr//g\' | gzip -c > %s_scTEtmp/o0/%s.bed.gz' %(filename, sample, switch, out, sample))
+    else:
+        os.system('bamToBed -i %s -bedpe | awk -F ["\t":] \'{OFS="\t"}{print $1,$2,$6,$7}\' | sed %s \'s/^chr//g\' | gzip -c > %s_scTEtmp/o0/%s.bed.gz' % (filename, switch, out, out))
 
 def load_expected_whitelist(filename, logger):
     """

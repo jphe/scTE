@@ -101,7 +101,7 @@ def Readanno(filename, annoglb, genome):
 
 def checkCBUMI(filename,out,CB,UMI):
     if CB:
-        subprocess.Popen('samtools view %s | head -100| grep "CR:Z:" | wc -l > %s_scTEtmp/o1/testCR.txt'%(filename,out),shell=True)
+        subprocess.run('samtools view %s | head -100| grep "CR:Z:" | wc -l > %s_scTEtmp/o1/testCR.txt'%(filename,out),shell=True)
         time.sleep(2) #subprocess need take some time
         o=open('%s_scTEtmp/o1/testCR.txt'%(out),'rU')
         for l in o:
@@ -110,7 +110,7 @@ def checkCBUMI(filename,out,CB,UMI):
                 logging.error("The input file %s has no cell barcodes information, plese make sure the aligner have add the cell barcode key, or set CB to False"%filename)
                 sys.exit(1)
     if UMI:
-        subprocess.Popen('samtools view %s | head -100| grep "UR:Z:" | wc -l > %s_scTEtmp/o1/testUMI.txt'%(filename,out),shell=True)
+        subprocess.run('samtools view %s | head -100| grep "UR:Z:" | wc -l > %s_scTEtmp/o1/testUMI.txt'%(filename,out),shell=True)
         time.sleep(2)
         o=open('%s_scTEtmp/o1/testUMI.txt'%(out),'rU')
         for l in o:
@@ -132,7 +132,7 @@ def Bam2bed(filename, CB, UMI, out, num_threads):
     if not UMI:
         if not CB:
             # Put the sample name in the barcode slot
-            os.system('samtools view -@ %s %s | awk \'{OFS="\t"}{print $3,$4,$4+100,"%s"}\' | sed %s \'s/^chr//g\'| gzip -c > %s_scTEtmp/o1/%s.bed.gz' % (num_threads, filename, out, switch, out, sample))
+            os.system('samtools view -@ %s %s | awk \'{OFS="\t"}{print $3,$4,$4+100,"%s"}\' | sed %s \'s/^chr//g\'| gzip -c > %s_scTEtmp/o1/%s.bed.gz' % (num_threads, filename, out, switch, out, out))
         else:
             os.system('samtools view -@ %s %s | awk \'{OFS="\t"}{for(i=12;i<=NF;i++)if($i~/CR:Z:/)n=i}{print $3,$4,$4+100,$n}\' | sed %s \'s/CR:Z://g\' | sed %s \'s/^chr//g\' | gzip -c > %s_scTEtmp/o1/%s.bed.gz' % (num_threads, filename, switch, switch, out, out))
     else:

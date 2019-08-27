@@ -36,5 +36,7 @@ setup(name='scTE',
         scripts=[
           'bin/scTE',
           'bin/scTE_build',
+          'bin/scTEATAC_build',
+          'bin/scTEATAC',
         ]
         )
