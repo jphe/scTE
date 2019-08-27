@@ -43,7 +43,7 @@ def prepare_parser():
     
     desc = "Build genome annotation index for scTE"
 
-    exmp = "Example: scTEATAC_build -g mm10 -te Data/TE.bed"
+    exmp = "Example: scTEATAC_build -g Data/TE.bed -o mm10.te"
     
     parser = argparse.ArgumentParser(prog='scTE_build',description=desc, epilog=exmp)
     
