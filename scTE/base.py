@@ -241,9 +241,9 @@ def splitAllChrs(chromosome_list, filename, genenumber, countnumber, UMI=True):
 def filterCRs(filename, genenumber, countnumber):
     CRs = defaultdict(int)
     for f in glob.glob('%s_scTEtmp/o2/%s*.count.gz'%(filename,filename)):
-        o = gzip.open(f,'rb')
+        o = gzip.open(f,'rt')
         for l in o:
-            t = l.decode('ascii').strip().split('\t')
+            t = l.strip().split('\t')
             CRs[t[0]] += int(t[1])
         o.close()
 
@@ -293,9 +293,9 @@ def splitChr(chr, filename, CB, UMI):
                 os.system('gunzip -c -f %s_scTEtmp/o1/%s.bed.gz | grep ^%s | awk \'!x[$0]++\' | gzip -c > %s_scTEtmp/o2/%s.chr%s.bed.gz'%(filename,filename,chr,filename,filename,chr))
 
     CRs = defaultdict(int)
-    o = gzip.open('%s_scTEtmp/o2/%s.chr%s.bed.gz'%(filename,filename,chr),'rb')
+    o = gzip.open('%s_scTEtmp/o2/%s.chr%s.bed.gz'%(filename,filename,chr),'rt')
     for l in o:
-        t = l.decode('ascii').strip().split('\t')
+        t = l.strip().split('\t')
         CRs[t[3]] += 1
     o.close()
 
@@ -368,9 +368,9 @@ def Countexpression(filename, allelement, genenumber, cellnumber):
     gene_seen = allelement
 
     whitelist={}
-    o = gzip.open('%s_scTEtmp/o4/%s.bed.gz'%(filename, filename), 'rb')
+    o = gzip.open('%s_scTEtmp/o4/%s.bed.gz'%(filename, filename), 'rt')
     for n,l in enumerate(o):
-        t = l.decode('ascii').strip().split('\t')
+        t = l.strip().split('\t')
         if t[0] not in whitelist:
             whitelist[t[0]] = 0
         whitelist[t[0]] += 1
@@ -387,9 +387,9 @@ def Countexpression(filename, allelement, genenumber, cellnumber):
     CRlist = set(CRlist)
 
     res = {}
-    genes_oh = gzip.open('%s_scTEtmp/o4/%s.bed.gz' % (filename,filename), 'rb')
+    genes_oh = gzip.open('%s_scTEtmp/o4/%s.bed.gz' % (filename,filename), 'rt')
     for n, l in enumerate(genes_oh):
-        t = l.decode('ascii').strip().split('\t')
+        t = l.strip().split('\t')
         if t[0] not in CRlist:
             continue
         if t[0] not in res:
