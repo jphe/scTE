@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2019 Jiangping He & Andrew P. Hutchins
+Copyright (c) 2019 Jiangping He, Andrew P. Hutchins & Jiekai Chen
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
