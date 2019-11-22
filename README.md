@@ -53,8 +53,10 @@ If you want to use your customs reference, you can use the ` -gene -te` options:
 ```
 scTE_build -te TEs.bed -gene Genes.gtf -o custome.idx
 
--te Six columns bed file for transposable elements annotation.
--gene Gtf file for genes annotation. 
+-te
+    Six columns bed file for transposable elements annotation.
+-gene
+    Gtf file for genes annotation. 
 ```
 For more informat about BED and GTF format, see from [UCSC](https://genome.ucsc.edu/FAQ/FAQformat).
 These annotations are then processed and converted into genome indices. The scTE algorithm will allocate 
