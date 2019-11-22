@@ -87,10 +87,19 @@ For other aligners, the barcode should be stored in the ‘CR:Z’ tag, and the 
 **Analysis of C1 style data**<br>
 If the UMI is missing or not used in the scRNA-seq technology (for example on the Fluidigm C1 platform), it can be disabled with `–UMI False` 
 (the default is True) switch in scTE. If the barcode is missing it can be disabled with the `–CB False` (the default is True), 
-and instead the cell barcodes will be taken from the names of the BAM files (multiple BAM files can be provided to scTE with the –i option)
+and instead the cell barcodes will be taken from the names of the BAM files.
 
 ```bash
 $ scTE -i inp.bam -o out -g mm10 -x mm10.exclusive.idx -CB False -UMI False
+```
+multiple BAM files can be provided to scTE with the –i option
+```
+$ scTE -i *.bam -o out -g mm10 -x mm10.exclusive.idx -CB False -UMI False
+
+```
+or 
+```
+$ scTE -i input1.bam,input2.bam,input3.bam,... -o out -g mm10 -x mm10.exclusive.idx -CB False -UMI False
 
 ```
 
