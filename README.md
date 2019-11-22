@@ -84,7 +84,19 @@ scTE is most tuned to [STARsolo](https://github.com/alexdobin/STAR) or the [Cell
 and can accept BAM files produced by either of these two programs. 
 For other aligners, the barcode should be stored in the ‘CR:Z’ tag, and the UMI in the ‘UR:Z’ tag in the BAM file
 
+**Analysis of C1 style data**
+If the UMI is missing or not used in the scRNA-seq technology (for example on the Fluidigm C1 platform), it can be disabled with `–UMI False` 
+(the default is True) switch in scTE. If the barcode is missing it can be disabled with the `–CB False` (the default is True), 
+and instead the cell barcodes will be taken from the names of the BAM files (multiple BAM files can be provided to scTE with the –i option)
 
+```bash
+$ scTE -i inp.bam -o out -g mm10 -x mm10.exclusive.idx -CB False -UMI False
+
+```
+
+scTE is most tuned to [STARsolo](https://github.com/alexdobin/STAR) or the [Cell Ranger](https://support.10xgenomics.com/single-cell-gene-expression/software/pipelines/latest/what-is-cell-ranger) pipeline outputs, 
+and can accept BAM files produced by either of these two programs. 
+For other aligners, the barcode should be stored in the ‘CR:Z’ tag, and the UMI in the ‘UR:Z’ tag in the BAM file
 
 
 
