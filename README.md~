@@ -27,6 +27,7 @@ $ python setup.py install
 Usage
 -----
 
+Building genome indices
 scTE builds genome indices for the fast alignment of reads to genes and TEs. These indices can be automatically generated using the commands:
 
 ```bash
@@ -66,7 +67,7 @@ in GENCODE will only contribute to the gene, and not to the TE score. This featu
 setting `–mode/-m exclusive` in scTE, which will instruct scTE to assign the reads to both TEs and genes 
 if a read comes from a TE inside exon/UTR regions of genes.
 
-**Analysis of 10x style data**
+**Analysis of 10x style scRNA-seq data**
 ```bash
 $ scTE -i inp.bam -o out -g mm10 -x mm10.exclusive.idx
 
@@ -84,7 +85,7 @@ scTE is most tuned to [STARsolo](https://github.com/alexdobin/STAR) or the [Cell
 and can accept BAM files produced by either of these two programs. 
 For other aligners, the barcode should be stored in the ‘CR:Z’ tag, and the UMI in the ‘UR:Z’ tag in the BAM file
 
-**Analysis of C1 style data**<br>
+**Analysis of C1 style scRNA-seq data**<br>
 If the UMI is missing or not used in the scRNA-seq technology (for example on the Fluidigm C1 platform), it can be disabled with `–UMI False` 
 (the default is True) switch in scTE. If the barcode is missing it can be disabled with the `–CB False` (the default is True), 
 and instead the cell barcodes will be taken from the names of the BAM files.
@@ -105,9 +106,13 @@ scTE is most tuned to [STARsolo](https://github.com/alexdobin/STAR) or the [Cell
 and can accept BAM files produced by either of these two programs. 
 For other aligners, the barcode should be stored in the ‘CR:Z’ tag, and the UMI in the ‘UR:Z’ tag in the BAM file
 
-**Analysis of C1 style data**<br>
+**Analysis of scATAC-seq data**<br>
 
-
+```
+wget -c http://hgdownload.soe.ucsc.edu/goldenPath/mm10/database/rmsk.txt.gz
+zcat mm10.te.txt.gz | grep -E 'LINE|SINE|LTR|Retroposon' | cut -f6-8,11 >mm10.te.bed
+scTEATAC_build -g mm10.te.bed -o mm10.te.atac
+```
 
 
 
