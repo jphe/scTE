@@ -113,8 +113,10 @@ $ wget -c http://hgdownload.soe.ucsc.edu/goldenPath/mm10/database/rmsk.txt.gz -O
 $ zcat mm10.te.txt.gz | grep -E 'LINE|SINE|LTR|Retroposon' | cut -f6-8,11 >mm10.te.bed
 $ scTEATAC_build -g mm10.te.bed -o mm10.te.atac
 ```
-
-
+Then the bam file can processe using scTE with the command:
+```
+scTE_scatacseq -i input.bam -x mm10.te.atac.idx
+```
 
 
 
