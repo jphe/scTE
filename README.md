@@ -11,7 +11,7 @@ scTE takes as input:
  * the genomic location of genes (GTF format)
 
 
-![scTE workflow](./docs/content/images/hic_example_nat_comm_small.png)
+![scTE workflow](./docs/scTE.png)
 
 
 Installation
@@ -95,12 +95,10 @@ $ scTE -i inp.bam -o out -g mm10 -x mm10.exclusive.idx -CB False -UMI False
 multiple BAM files can be provided to scTE with the `–i` option
 ```
 $ scTE -i *.bam -o out -g mm10 -x mm10.exclusive.idx -CB False -UMI False
-
 ```
 or 
 ```
 $ scTE -i input1.bam,input2.bam,... -o out -g mm10 -x mm10.exclusive.idx -CB False -UMI False
-
 ```
 
 scTE is most tuned to [STARsolo](https://github.com/alexdobin/STAR) or the [Cell Ranger](https://support.10xgenomics.com/single-cell-gene-expression/software/pipelines/latest/what-is-cell-ranger) pipeline outputs, 
