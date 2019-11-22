@@ -27,7 +27,7 @@ $ python setup.py install
 Usage
 -----
 
-Building genome indices
+**Building genome indices**<br>
 scTE builds genome indices for the fast alignment of reads to genes and TEs. These indices can be automatically generated using the commands:
 
 ```bash
