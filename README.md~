@@ -11,7 +11,7 @@ scTE takes as input:
  * the genomic location of genes (GTF format)
 
 
-![scTE workflow](./docs/content/images/hic_example_nat_comm_small.png)
+![scTE workflow](./docs/scTE.png)
 
 
 Installation
@@ -105,7 +105,7 @@ scTE is most tuned to [STARsolo](https://github.com/alexdobin/STAR) or the [Cell
 and can accept BAM files produced by either of these two programs. 
 For other aligners, the barcode should be stored in the ‘CR:Z’ tag, and the UMI in the ‘UR:Z’ tag in the BAM file
 
-
+**Analysis of C1 style data**<br>
 
 
 

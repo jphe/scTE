@@ -27,6 +27,7 @@ $ python setup.py install
 Usage
 -----
 
+##Building genome indices##
 scTE builds genome indices for the fast alignment of reads to genes and TEs. These indices can be automatically generated using the commands:
 
 ```bash
@@ -105,7 +106,7 @@ scTE is most tuned to [STARsolo](https://github.com/alexdobin/STAR) or the [Cell
 and can accept BAM files produced by either of these two programs. 
 For other aligners, the barcode should be stored in the ‘CR:Z’ tag, and the UMI in the ‘UR:Z’ tag in the BAM file
 
-
+**Analysis of C1 style data**<br>
 
 
 
