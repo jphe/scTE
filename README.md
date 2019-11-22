@@ -6,9 +6,9 @@ Quantifying transposable element expression from single-cell sequencing data
 
 scTE takes as input:
 
- * aligned sequence reads (BAM/SAM format)
- * the genomic location of TEs (BED format)
- * the genomic location of genes (GTF format)
+ * Aligned sequence reads (BAM/SAM format)
+ * The genomic location of TEs (BED format)
+ * The genomic location of genes (GTF format)
 
 
 ![scTE workflow](./docs/scTE.png)
