@@ -92,14 +92,14 @@ and instead the cell barcodes will be taken from the names of the BAM files.
 ```bash
 $ scTE -i inp.bam -o out -g mm10 -x mm10.exclusive.idx -CB False -UMI False
 ```
-multiple BAM files can be provided to scTE with the –i option
+multiple BAM files can be provided to scTE with the `–i` option
 ```
 $ scTE -i *.bam -o out -g mm10 -x mm10.exclusive.idx -CB False -UMI False
 
 ```
 or 
 ```
-$ scTE -i input1.bam,input2.bam,input3.bam,... -o out -g mm10 -x mm10.exclusive.idx -CB False -UMI False
+$ scTE -i input1.bam,input2.bam,... -o out -g mm10 -x mm10.exclusive.idx -CB False -UMI False
 
 ```
 
