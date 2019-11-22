@@ -66,7 +66,7 @@ in GENCODE will only contribute to the gene, and not to the TE score. This featu
 setting `–mode/-m exclusive` in scTE, which will instruct scTE to assign the reads to both TEs and genes 
 if a read comes from a TE inside exon/UTR regions of genes.
 
-#####Analysis of 10x style data
+**Analysis of 10x style data**
 ```bash
 $ scTE -i inp.bam -o out -g mm10 -x mm10.exclusive.idx
 
