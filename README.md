@@ -1,7 +1,7 @@
 scTE
 ==============
 
-Quantifying transposable element expression from single-cell sequencing data
+Quantifying transposable element (TEs) expression from single-cell sequencing data
 ----------------------------------------------------------------------
 
 scTE takes as input:
