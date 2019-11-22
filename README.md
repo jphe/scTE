@@ -8,9 +8,9 @@ Quantifying transposable element expression from single-cell sequencing data
 
 scTE takes as input:
 
- * aligned sequence reads (bam/sam format)
- * the genomic location of TEs (gtf format)
- * the genomic location of genes (gtf format)
+ * aligned sequence reads (BAM/SAM format)
+ * the genomic location of TEs (BED format)
+ * the genomic location of genes (GTF format)
 
 
 ![scTE workflow](./docs/content/images/hic_example_nat_comm_small.png)
@@ -55,9 +55,9 @@ If you want to use your customs reference, you can use the ` -gene -te` options:
 ```
 scTE_build -te TEs.bed -gene Genes.gtf -o custome.idx
 
--te Six columns bed file for transposable elements annotation. Need the -gene option. For bed file format, see from [UCSC](https://genome.ucsc.edu/FAQ/FAQformat)
--gene Gtf file for genes annotation. Need the -te option. For gtf file format, see from [UCSC](https://genome.ucsc.edu/FAQ/FAQformat)
+-te Six columns bed file for transposable elements annotation. Need the -gene option.
+-gene Gtf file for genes annotation. Need the -te option. 
 ```
-
+For more informat about BED and GTF format, see from [UCSC](https://genome.ucsc.edu/FAQ/FAQformat)
 These annotations are then processed and converted into genome indices. The scTE algorithm will allocate reads first to gene exons, and then to TEs by default. Hence TEs inside exon/UTR regions of genes annotated in GENCODE will only contribute to the gene, and not to the TE score. This feature can be changed by setting ‘–mode/-m exclusive’ in scTE, which will instruct scTE to assign the reads to both TEs and genes if a read comes from a TE inside exon/UTR regions of genes.
 
