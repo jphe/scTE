@@ -53,9 +53,13 @@ If you want to use your customs reference, you can use the ` -gene -te` options:
 ```
 scTE_build -te TEs.bed -gene Genes.gtf -o custome.idx
 
--te Six columns bed file for transposable elements annotation. Need the -gene option.
--gene Gtf file for genes annotation. Need the -te option. 
+-te Six columns bed file for transposable elements annotation.
+-gene Gtf file for genes annotation. 
 ```
 For more informat about BED and GTF format, see from [UCSC](https://genome.ucsc.edu/FAQ/FAQformat).
-These annotations are then processed and converted into genome indices. The scTE algorithm will allocate reads first to gene exons, and then to TEs by default. Hence TEs inside exon/UTR regions of genes annotated in GENCODE will only contribute to the gene, and not to the TE score. This feature can be changed by setting ‘–mode/-m exclusive’ in scTE, which will instruct scTE to assign the reads to both TEs and genes if a read comes from a TE inside exon/UTR regions of genes.
+These annotations are then processed and converted into genome indices. The scTE algorithm will allocate 
+reads first to gene exons, and then to TEs by default. Hence TEs inside exon/UTR regions of genes annotated 
+in GENCODE will only contribute to the gene, and not to the TE score. This feature can be changed by 
+setting `–mode/-m exclusive` in scTE, which will instruct scTE to assign the reads to both TEs and genes 
+if a read comes from a TE inside exon/UTR regions of genes.
 
