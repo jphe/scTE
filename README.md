@@ -109,7 +109,7 @@ For other aligners, the barcode should be stored in the ‘CR:Z’ tag, and the 
 **Analysis of scATAC-seq data**<br>
 The genome indices were prebuilt using:
 ```
-$ wget -c http://hgdownload.soe.ucsc.edu/goldenPath/mm10/database/rmsk.txt.gz
+$ wget -c http://hgdownload.soe.ucsc.edu/goldenPath/mm10/database/rmsk.txt.gz -O mm10.te.txt.gz
 $ zcat mm10.te.txt.gz | grep -E 'LINE|SINE|LTR|Retroposon' | cut -f6-8,11 >mm10.te.bed
 $ scTEATAC_build -g mm10.te.bed -o mm10.te.atac
 ```
