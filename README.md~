@@ -107,7 +107,7 @@ and can accept BAM files produced by either of these two programs.
 For other aligners, the barcode should be stored in the ‘CR:Z’ tag, and the UMI in the ‘UR:Z’ tag in the BAM file
 
 **Analysis of scATAC-seq data**<br>
-
+The genome indices were prebuilt using:
 ```
 wget -c http://hgdownload.soe.ucsc.edu/goldenPath/mm10/database/rmsk.txt.gz
 zcat mm10.te.txt.gz | grep -E 'LINE|SINE|LTR|Retroposon' | cut -f6-8,11 >mm10.te.bed
