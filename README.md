@@ -20,8 +20,6 @@ Installation
 ------------
 scTE works with python >=3.6.
 
-Currently, the best way to install pyGenomeTracks is with anaconda
-
 ```bash
 $ git clone https://github.com/jphe/scTE.git
 $ cd scTE
