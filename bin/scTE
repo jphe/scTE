@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import pandas as pd
 import multiprocessing
 from functools import partial
 import logging
@@ -41,6 +42,9 @@ def prepare_parser():
     optional.add_argument('--keeptmp', dest='keeptmp', type=str, nargs='?', default='False', choices=['True','False'],
                         help='Keep the _scTEtmp file, which is useful for debugging. Default: False')
 
+    optional.add_argument('--hdf5', dest='hdf5', type=str, nargs='?', default='False', choices=['True','False'],
+                        help='Save the output as .h5ad formatted file instead of csv file. Default: False')
+
     optional.add_argument('-p','--thread', metavar='INT', dest='thread', type=int, default=1,
                         help='Number of threads to use, Default: 1')
 
@@ -76,6 +80,8 @@ def main():
     else: args.UMI = False
     if args.CB == 'True': args.CB = True
     else: args.CB = False
+    if args.hdf5 == 'True': args.hdf5 = True
+    else: args.hdf5 = False
 
     info = args.info
     error = args.error
@@ -88,6 +94,7 @@ def main():
 
     info("Loading the genome annotation index... %s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
     allelement, chr_list, all_annot, glannot = Readanno(filename=outname, annoglb=args.annoglb[0], genome=args.genome)
+    print(chr_list)
     info("Finished loading the genome annotation index... %s \n"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
     info("Processing BAM/SAM files ...%s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
@@ -144,7 +151,7 @@ def main():
     info("Done fetching... %s \n"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
     info("Calculating expression... %s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
-    len_res, genenumber, filename = Countexpression(filename=args.out, allelement=allelement, genenumber=args.genenumber, cellnumber=args.cellnumber)
+    len_res, genenumber, filename = Countexpression(filename=args.out, allelement=allelement, genenumber=args.genenumber, cellnumber=args.cellnumber, hdf5=args.hdf5)
     info('Detect {0} cells expressed at least {1} genes, results output to {2}.csv'.format(len_res, genenumber, filename))
     info("Finished calculating expression %s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 

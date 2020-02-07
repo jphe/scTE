@@ -28,8 +28,8 @@ setup(name='scTE',
           'MacOS'
         ],
         install_requires=[
-          'argparse',
-          'numpy',
+          'argparse','scipy','pandas',
+          'numpy','anndata',
         ],
         include_package_data=True,
         zip_safe=False,

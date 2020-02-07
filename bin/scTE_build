@@ -95,6 +95,15 @@ def genomeIndex(genome, mode, tefile, genefile, outname, geneurls, teurls):
     raw = cleanexon(a[0]) 
     clean = cleanexon(a[1]) 
     
+    # for costume chromsome
+    o = open(tefile,'rU')
+    for line in o:
+        chr = line.strip().split('\t')[0]
+        if chr not in chr_list:
+            chr_list.append(chr)
+    o.close()
+    #======================
+    
     if not tefile:
         os.system('wget -c -t 0 -T 5 %s'%teurls)
         os.system('wget -c -t 0 -T 5 %s'%teurls)
@@ -197,23 +206,29 @@ def genomeIndex(genome, mode, tefile, genefile, outname, geneurls, teurls):
     elif mode == 'inclusive':
         genes = genelist() 
         genes.load_list(raw)
-
-        teform ={'force_tsv': True, 'loc': 'location(chr=column[5], left=column[6], right=column[7])', 'annot': 10, 'clas':11}
-        if tefilename.endswith('.gz'):
-            TEs = genelist(tefilename, format=teform, gzip=True)
-        else:
-            TEs = genelist(tefilename, format=teform)
         
-        keep=[]
-        for id,item in enumerate(TEs):
-            if item['clas'] not in ['DNA','LINE','LTR','SINE','Satellite','Retroposon']:
-                continue
-            tmp=item.copy()
-            del tmp['clas']
-            keep.append(tmp)
+        
+        if not tefile:
+            teform ={'force_tsv': True, 'loc': 'location(chr=column[5], left=column[6], right=column[7])', 'annot': 10, 'clas':11}
+            if tefilename.endswith('.gz'):
+                TEs = genelist(tefilename, format=teform, gzip=True)
+            else:
+                TEs = genelist(tefilename, format=teform)
+            
+            keep=[]
+            for id,item in enumerate(TEs):
+                if item['clas'] not in ['DNA','LINE','LTR','SINE','Satellite','Retroposon']:
+                    continue
+                tmp=item.copy()
+                del tmp['clas']
+                keep.append(tmp)
+            gls=genelist()
+            gls.load_list(keep)
+        
+        else:
+            TEs = genelist(tefilename, format={'force_tsv': True, 'loc': 'location(chr=column[0], left=column[1], right=column[2])', 'annot':3})
+            gls = TEs.deepcopy()
 
-        gls=genelist()
-        gls.load_list(keep)
         
         all_annot = genes + gls
         

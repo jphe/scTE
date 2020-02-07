@@ -1,3 +1,4 @@
+import pandas as pd
 import multiprocessing
 import argparse
 from functools import partial
@@ -9,6 +10,10 @@ from math import log
 from scTE.miniglbase import genelist, glload, location
 from scTE.annotation import annoGtf
 import subprocess
+
+import numpy as np
+import scipy
+import anndata as ad
 
 def read_opts(parser):
     args = parser.parse_args()
@@ -93,10 +98,12 @@ def getanno(filename, genefile, tefile, genome, mode):
 def Readanno(filename, annoglb, genome):
     glannot = glload(annoglb)
     allelement = set(glannot['annot'])
-    if genome in ['mm10']:
-        chr_list = ['chr'+ str(i) for i in range(1,20) ] + [ 'chrX','chrY', 'chrM' ]
-    elif genome in ['hg38']:
-        chr_list = ['chr'+ str(i) for i in range(1,23) ] + [ 'chrX','chrY', 'chrM' ]
+#     if genome in ['mm10']:
+#         chr_list = ['chr'+ str(i) for i in range(1,20) ] + [ 'chrX','chrY', 'chrM' ]
+#     elif genome in ['hg38']:
+#         chr_list = ['chr'+ str(i) for i in range(1,23) ] + [ 'chrX','chrY', 'chrM' ]
+    
+    chr_list = list(set([ k['chr'] for k in glannot['loc']])) #this is useful for costume chromsome
     return(allelement, chr_list, annoglb, glannot)
 
 def checkCBUMI(filename,out,CB,UMI):
@@ -313,6 +320,7 @@ def align(chr, filename, all_annot, glannot, whitelist, CB):
 
     '''
     s1 = time.time()
+    chr = 'chr' + chr
 
     if not os.path.exists('%s_scTEtmp/o3'%filename):
         os.system('mkdir -p %s_scTEtmp/o3'%filename)
@@ -364,7 +372,7 @@ def align(chr, filename, all_annot, glannot, whitelist, CB):
             oh.write('%s\t%s\t%s\n' % (bc, gene, res[bc][gene]))
     oh.close()
 
-def Countexpression(filename, allelement, genenumber, cellnumber):
+def Countexpression(filename, allelement, genenumber, cellnumber, hdf5):
     gene_seen = allelement
 
     whitelist={}
@@ -407,17 +415,39 @@ def Countexpression(filename, allelement, genenumber, cellnumber):
     gene_seen = list(gene_seen) # Do the sort once;
     gene_seen.sort()
 
-    res_oh = open('%s.csv'%filename, 'w')
-    res_oh.write('barcodes,')
-    res_oh.write('%s\n' % (','.join([str(i) for i in gene_seen])))
+    #==== save results =====
+    if not hdf5: # save as csv
+        res_oh = open('%s.csv'%filename, 'w')
+        res_oh.write('barcodes,')
+        res_oh.write('%s\n' % (','.join([str(i) for i in gene_seen])))
 
-    for k in sorted(res):
-        l = ["0"] * len(gene_seen) # Avoid all the appends
-        for idx, gene in enumerate(gene_seen):
-            if gene in res[k]:
-                l[idx] = str(res[k][gene])
-        res_oh.write('%s,%s\n' % (k, ','.join(l)))
-    res_oh.close()
+        for k in sorted(res):
+            l = ["0"] * len(gene_seen) # Avoid all the appends
+            for idx, gene in enumerate(gene_seen):
+                if gene in res[k]:
+                    l[idx] = str(res[k][gene])
+            res_oh.write('%s,%s\n' % (k, ','.join(l)))
+        res_oh.close()
+    
+    else: # save as hdf5
+        data = []
+        CBs = []
+        for k in sorted(res):
+            l = ["0"] * len(gene_seen) # Avoid all the appends
+            for idx, gene in enumerate(gene_seen):
+                if gene in res[k]:
+                    l[idx] = str(res[k][gene])
+            data.append(l)
+            CBs.append(k)
+
+        obs = pd.DataFrame(index = CBs)
+        var = pd.DataFrame(index = gene_seen)
+        adata = ad.AnnData(np.asarray(data),var = var,obs = obs)
+        adata.X = scipy.sparse.csr_matrix(adata.X)
+        adata.write('%s.h5ad'%filename)
+    
+    #========================
+
 
     return len(res), genenumber, filename
 

@@ -72,6 +72,9 @@ def prepare_parser():
 
     optional.add_argument('-p','--thread', metavar='INT', dest='thread', type=int, default=1,
                         help='Number of threads to use, Default: 1')
+    
+    optional.add_argument('--hdf5', dest='hdf5', type=str, nargs='?', default='False', choices=['True','False'],
+                        help='Save the output as .h5ad formatted file instead of csv file. Default: False')
                         
     required = parser.add_argument_group('required arguments')
 
@@ -115,6 +118,8 @@ def main():
     
     if args.CB == 'True': args.CB = True
     else: args.CB = False
+    if args.hdf5 == 'True': args.hdf5 = True
+    else: args.hdf5 = False
     
     args.genenumber = 0
     args.cellnumber = 1e4
@@ -182,7 +187,7 @@ def main():
     info("Done fetching... %s \n"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
     info("Calculating expression... %s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
-    len_res, genenumber, filename = Countexpression(filename=args.out, allelement=allelement, genenumber=args.genenumber, cellnumber=args.cellnumber)
+    len_res, genenumber, filename = Countexpression(filename=args.out, allelement=allelement, genenumber=args.genenumber, cellnumber=args.cellnumber,hdf5=args.hdf5)
     info('Detect {0} cells expressed at least {1} genes, results output to {2}.csv'.format(len_res, genenumber, filename))
     info("Finished calculating expression %s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
