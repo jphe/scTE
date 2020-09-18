@@ -67,7 +67,7 @@ def prepare_parser():
     optional.add_argument('-UMI', dest='UMI', type=str, nargs='?', default='False', choices=['True','False'],
                         help='Set to false to ignore for UMI. Default: False')
 
-    optional.add_argument('--ignoreDuplicates', dest='noDup', type=str, nargs='?', default='True', choices=['True','False'],
+    optional.add_argument('--ignoreDuplicates', dest='noDup', type=str, nargs='?', default='False', choices=['True','False'],
                         help='If set, reads that have the same orientation and start position will be considered only once. If reads are paired, the mate’s position also has to coincide to ignore a read. Default: True')
 
     optional.add_argument('--keeptmp', dest='keeptmp', type=str, nargs='?', default='False', choices=['True','False'],
