@@ -67,6 +67,9 @@ def prepare_parser():
     optional.add_argument('-UMI', dest='UMI', type=str, nargs='?', default='False', choices=['True','False'],
                         help='Set to false to ignore for UMI. Default: False')
 
+    optional.add_argument('--ignoreDuplicates', dest='noDup', type=str, nargs='?', default='False', choices=['True','False'],
+                        help='If set, reads that have the same orientation and start position will be considered only once. If reads are paired, the mate’s position also has to coincide to ignore a read. Default: True')
+
     optional.add_argument('--keeptmp', dest='keeptmp', type=str, nargs='?', default='False', choices=['True','False'],
                         help='Keep the _scTEtmp file, which is useful for debugging. Default: False')
 
@@ -148,12 +151,12 @@ def main():
     if len(args.input) > 1:
         info('Using para_atacBam2bed as more than 1 input BAM')
         pool=multiprocessing.Pool(processes=args.thread)
-        partial_work = partial(para_atacBam2bed, CB=args.CB,out=outname)
+        partial_work = partial(para_atacBam2bed, CB=args.CB,out=outname, noDup=args.noDup)
         pool.map(partial_work, args.input)
 
         os.system('gunzip -c -f %s_scTEtmp/o0/*.bed.gz | gzip > %s_scTEtmp/o1/%s.bed.gz' % (outname,outname,outname))
     else:
-        atacBam2bed(args.input[0], outname, CB=args.CB, UMI=args.UMI, num_threads=args.thread)
+        atacBam2bed(args.input[0], outname, CB=args.CB, UMI=args.UMI, noDup=args.noDup, num_threads=args.thread)
     info("Done BAM/SAM files processing ...%s \n"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
     info("Splitting ...%s"%(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))

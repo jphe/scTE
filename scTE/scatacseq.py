@@ -82,7 +82,7 @@ def library(args):
             yield i + tmp
     return
 
-def atacBam2bed(filename, out, CB, UMI, num_threads):
+def atacBam2bed(filename, out, CB, UMI, noDup, num_threads):
 
     sample=filename.split('/')[-1].replace('.bam','')
 
@@ -93,11 +93,17 @@ def atacBam2bed(filename, out, CB, UMI, num_threads):
 
     if not CB:
         # Put the sample name in the barcode slot
-        os.system('bamToBed -i %s -bedpe | awk -F ["\t":] \'{OFS="\t"}{print $1,$2,$6,"%s"}\' | sed %s \'s/^chr//g\' | gzip -c > %s_scTEtmp/o1/%s.bed.gz' % (filename, sample,switch, out, out))
+        if noDup:
+            os.system('bamToBed -i %s -bedpe | awk -F ["\t":] \'{OFS="\t"}{print $1,$2,$6,"%s"}\' | sed %s \'s/^chr//g\' | awk \'!x[$0]++\' | gzip -c > %s_scTEtmp/o1/%s.bed.gz' % (filename, sample,switch, out, out))
+        else:
+            os.system('bamToBed -i %s -bedpe | awk -F ["\t":] \'{OFS="\t"}{print $1,$2,$6,"%s"}\' | sed %s \'s/^chr//g\' | gzip -c > %s_scTEtmp/o1/%s.bed.gz' % (filename, sample,switch, out, out))
     else:
-        os.system('bamToBed -i %s -bedpe | awk -F ["\t":] \'{OFS="\t"}{print $1,$2,$6,$7}\'  | sed %s \'s/^chr//g\' | gzip -c > %s_scTEtmp/o1/%s.bed.gz' % (filename, switch, out, out))
+        if noDup:
+            os.system('bamToBed -i %s -bedpe | awk -F ["\t":] \'{OFS="\t"}{print $1,$2,$6,$7}\'  | sed %s \'s/^chr//g\' | awk \'!x[$0]++\' | gzip -c > %s_scTEtmp/o1/%s.bed.gz' % (filename, switch, out, out))
+        else:
+            os.system('bamToBed -i %s -bedpe | awk -F ["\t":] \'{OFS="\t"}{print $1,$2,$6,$7}\'  | sed %s \'s/^chr//g\' | gzip -c > %s_scTEtmp/o1/%s.bed.gz' % (filename, switch, out, out))
 
-def para_atacBam2bed(filename, CB, out):
+def para_atacBam2bed(filename, CB, out, noDup):
     if not os.path.exists('%ss_scTEtmp/o0'%out):
         os.system('mkdir -p %s_scTEtmp/o0'%out)
 
@@ -109,9 +115,15 @@ def para_atacBam2bed(filename, CB, out):
         switch = '-r'
 
     if not CB:
-        os.system('bamToBed -i %s -bedpe | awk -F ["\t":] \'{OFS="\t"}{print $1,$2,$6,"%s"}\' | sed %s \'s/^chr//g\' | gzip -c > %s_scTEtmp/o0/%s.bed.gz' %(filename, sample, switch, out, sample))
+        if noDup:
+            os.system('bamToBed -i %s -bedpe | awk -F ["\t":] \'{OFS="\t"}{print $1,$2,$6,"%s"}\' | sed %s \'s/^chr//g\' | awk \'!x[$0]++\' | gzip -c > %s_scTEtmp/o0/%s.bed.gz' %(filename, sample, switch, out, sample))
+        else:
+            os.system('bamToBed -i %s -bedpe | awk -F ["\t":] \'{OFS="\t"}{print $1,$2,$6,"%s"}\' | sed %s \'s/^chr//g\' | gzip -c > %s_scTEtmp/o0/%s.bed.gz' %(filename, sample, switch, out, sample))
     else:
-        os.system('bamToBed -i %s -bedpe | awk -F ["\t":] \'{OFS="\t"}{print $1,$2,$6,$7}\' | sed %s \'s/^chr//g\' | gzip -c > %s_scTEtmp/o0/%s.bed.gz' % (filename, switch, out, out))
+        if noDup:
+            os.system('bamToBed -i %s -bedpe | awk -F ["\t":] \'{OFS="\t"}{print $1,$2,$6,$7}\' | sed %s \'s/^chr//g\' | awk \'!x[$0]++\' | gzip -c > %s_scTEtmp/o0/%s.bed.gz' % (filename, switch, out, out))
+        else:
+            os.system('bamToBed -i %s -bedpe | awk -F ["\t":] \'{OFS="\t"}{print $1,$2,$6,$7}\' | sed %s \'s/^chr//g\' | gzip -c > %s_scTEtmp/o0/%s.bed.gz' % (filename, switch, out, out))
 
 def load_expected_whitelist(filename, logger):
     """
