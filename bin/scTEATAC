@@ -125,6 +125,8 @@ def main():
     else: args.hdf5 = False
     if args.noDup == 'True': args.noDup = True
     else: args.noDup = False
+    if args.UMI == 'True': args.UMI = True
+    else: args.UMI = False
     
     args.genenumber = 0
     args.cellnumber = 1e4
