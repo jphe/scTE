@@ -276,13 +276,20 @@ def splitChr(chr, filename, CB, UMI):
 
     chr=chr.replace('chr','')
     if not CB: # C1-style data is a cell per BAM, so no barcode;
-        if chr == '1':
-            os.system('gunzip -c -f %s_scTEtmp/o1/%s.bed.gz | grep -v ^1\'[0-9]\' | grep ^%s | gzip -c > %s_scTEtmp/o2/%s.chr%s.bed.gz'%(filename,filename,chr,filename,filename,chr))
-        elif chr == '2':
-            os.system('gunzip -c -f %s_scTEtmp/o1/%s.bed.gz | grep -v ^2\'[0-9]\' | grep ^%s  | gzip -c > %s_scTEtmp/o2/%s.chr%s.bed.gz'%(filename,filename,chr,filename,filename,chr))
+        if not UMI:
+            if chr == '1':
+                os.system('gunzip -c -f %s_scTEtmp/o1/%s.bed.gz | grep -v ^1\'[0-9]\' | grep ^%s | gzip -c > %s_scTEtmp/o2/%s.chr%s.bed.gz'%(filename,filename,chr,filename,filename,chr))
+            elif chr == '2':
+                os.system('gunzip -c -f %s_scTEtmp/o1/%s.bed.gz | grep -v ^2\'[0-9]\' | grep ^%s | gzip -c > %s_scTEtmp/o2/%s.chr%s.bed.gz'%(filename,filename,chr,filename,filename,chr))
+            else:
+                os.system('gunzip -c -f %s_scTEtmp/o1/%s.bed.gz | grep ^%s | gzip -c > %s_scTEtmp/o2/%s.chr%s.bed.gz'%(filename,filename,chr,filename,filename,chr))
         else:
-            os.system('gunzip -c -f %s_scTEtmp/o1/%s.bed.gz | grep ^%s | gzip -c > %s_scTEtmp/o2/%s.chr%s.bed.gz'%(filename,filename,chr,filename,filename,chr))
-
+            if chr == '1':
+                os.system('gunzip -c -f %s_scTEtmp/o1/%s.bed.gz | grep -v ^1\'[0-9]\' | grep ^%s | awk \'!x[$0]++\' | gzip -c > %s_scTEtmp/o2/%s.chr%s.bed.gz'%(filename,filename,chr,filename,filename,chr))
+            elif chr == '2':
+                os.system('gunzip -c -f %s_scTEtmp/o1/%s.bed.gz | grep -v ^2\'[0-9]\' | grep ^%s | awk \'!x[$0]++\' | gzip -c > %s_scTEtmp/o2/%s.chr%s.bed.gz'%(filename,filename,chr,filename,filename,chr))
+            else:
+                os.system('gunzip -c -f %s_scTEtmp/o1/%s.bed.gz | grep ^%s | awk \'!x[$0]++\' | gzip -c > %s_scTEtmp/o2/%s.chr%s.bed.gz'%(filename,filename,chr,filename,filename,chr))
     else:
         if not UMI: # did not remove the potential PCR duplicates for scRNA-seq
             if chr == '1':
