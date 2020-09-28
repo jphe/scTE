@@ -2,8 +2,8 @@ from setuptools import setup
 import glob,os
 
 def readme():
-      with open('README.md') as f:
-           return f.read()
+      with open('README.md',encoding="utf-8") as f:
+        return f.read()
 
 setup(name='scTE',
         version='1.0',
