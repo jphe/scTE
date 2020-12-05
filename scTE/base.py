@@ -143,7 +143,7 @@ def Bam2bed(filename, CB, UMI, out, num_threads):
         else:
             os.system('samtools view -@ %s %s | awk \'{OFS="\t"}{for(i=12;i<=NF;i++)if($i~/CR:Z:/)n=i}{print $3,$4,$4+100,$n}\' | sed %s \'s/CR:Z://g\' | sed %s \'s/^chr//g\' | gzip -c > %s_scTEtmp/o1/%s.bed.gz' % (num_threads, filename, switch, switch, out, out))
     else:
-        os.system('samtools view -@ %s %s | awk \'{OFS="\t"}{for(i=12;i<=NF;i++)if($i~/CR:Z:/)n=i}{for(i=12;i<=NF;i++)if($i~/UR:Z:/)m=i}{print $3,$4,$4+100,$n,$m}\' | sed %s \'s/CR:Z://g\' | sed %s \'s/UR:Z://g\'| sed %s \'s/^chr//g\' | gzip -c > %s_scTEtmp/o1/%s.bed.gz' % (num_threads, filename, switch, switch, switch, out,out))
+        os.system('samtools view -@ %s %s | awk \'{OFS="\t"}{for(i=12;i<=NF;i++)if($i~/CR:Z:/)n=i}{for(i=12;i<=NF;i++)if($i~/UR:Z:/)m=i}{print $3,$4,$4+100,$n,$m}\' | sed %s \'s/CR:Z://g\' | sed %s \'s/UR:Z://g\'| sed %s \'s/^chr//g\' | awk \'!x[$4$5]++\' | gzip -c > %s_scTEtmp/o1/%s.bed.gz' % (num_threads, filename, switch, switch, switch, out,out))
 
 def Para_bam2bed(filename, CB, UMI, out):
     if not os.path.exists('%s_scTEtmp/o0'%out):
@@ -162,7 +162,7 @@ def Para_bam2bed(filename, CB, UMI, out):
         else:
             os.system('samtools view %s | awk \'{OFS="\t"}{for(i=12;i<=NF;i++)if($i~/CR:Z:/)n=i}{print $3,$4,$4+100,$n,$m}\' | sed %s \'s/CR:Z://g\' | sed %s \'s/^chr//g\' | gzip > %s_scTEtmp/o0/%s.bed.gz'%(filename, switch, switch, out,sample))
     else:
-        os.system('samtools view %s | awk \'{OFS="\t"}{for(i=12;i<=NF;i++)if($i~/CR:Z:/)n=i}{for(i=12;i<=NF;i++)if($i~/UR:Z:/)m=i}{print $3,$4,$4+100,$n,$m}\' | sed %s \'s/CR:Z://g\' | sed %s \'s/UR:Z://g\' | sed %s \'s/^chr//g\' | gzip > %s_scTEtmp/o0/%s.bed.gz'%(filename, switch, switch, switch, out,sample))
+        os.system('samtools view %s | awk \'{OFS="\t"}{for(i=12;i<=NF;i++)if($i~/CR:Z:/)n=i}{for(i=12;i<=NF;i++)if($i~/UR:Z:/)m=i}{print $3,$4,$4+100,$n,$m}\' | sed %s \'s/CR:Z://g\' | sed %s \'s/UR:Z://g\' | sed %s \'s/^chr//g\' | awk \'!x[$4$5]++\' | gzip > %s_scTEtmp/o0/%s.bed.gz'%(filename, switch, switch, switch, out,sample))
 
 def splitAllChrs(chromosome_list, filename, genenumber, countnumber, UMI=True):
     '''
@@ -285,11 +285,11 @@ def splitChr(chr, filename, CB, UMI):
                 os.system('gunzip -c -f %s_scTEtmp/o1/%s.bed.gz | grep ^%s | gzip -c > %s_scTEtmp/o2/%s.chr%s.bed.gz'%(filename,filename,chr,filename,filename,chr))
         else:
             if chr == '1':
-                os.system('gunzip -c -f %s_scTEtmp/o1/%s.bed.gz | grep -v ^1\'[0-9]\' | grep ^%s | awk \'!x[$0]++\' | gzip -c > %s_scTEtmp/o2/%s.chr%s.bed.gz'%(filename,filename,chr,filename,filename,chr))
+                os.system('gunzip -c -f %s_scTEtmp/o1/%s.bed.gz | grep -v ^1\'[0-9]\' | grep ^%s | gzip -c > %s_scTEtmp/o2/%s.chr%s.bed.gz'%(filename,filename,chr,filename,filename,chr))
             elif chr == '2':
-                os.system('gunzip -c -f %s_scTEtmp/o1/%s.bed.gz | grep -v ^2\'[0-9]\' | grep ^%s | awk \'!x[$0]++\' | gzip -c > %s_scTEtmp/o2/%s.chr%s.bed.gz'%(filename,filename,chr,filename,filename,chr))
+                os.system('gunzip -c -f %s_scTEtmp/o1/%s.bed.gz | grep -v ^2\'[0-9]\' | grep ^%s | gzip -c > %s_scTEtmp/o2/%s.chr%s.bed.gz'%(filename,filename,chr,filename,filename,chr))
             else:
-                os.system('gunzip -c -f %s_scTEtmp/o1/%s.bed.gz | grep ^%s | awk \'!x[$0]++\' | gzip -c > %s_scTEtmp/o2/%s.chr%s.bed.gz'%(filename,filename,chr,filename,filename,chr))
+                os.system('gunzip -c -f %s_scTEtmp/o1/%s.bed.gz | grep ^%s | gzip -c > %s_scTEtmp/o2/%s.chr%s.bed.gz'%(filename,filename,chr,filename,filename,chr))
     else:
         if not UMI: # did not remove the potential PCR duplicates for scRNA-seq
             if chr == '1':
@@ -300,11 +300,11 @@ def splitChr(chr, filename, CB, UMI):
                 os.system('gunzip -c -f %s_scTEtmp/o1/%s.bed.gz | grep ^%s | gzip -c > %s_scTEtmp/o2/%s.chr%s.bed.gz'%(filename,filename,chr,filename,filename,chr))
         else:
             if chr == '1':
-                os.system('gunzip -c -f %s_scTEtmp/o1/%s.bed.gz | grep -v ^1\'[0-9]\' | grep ^%s | awk \'!x[$0]++\' | gzip -c > %s_scTEtmp/o2/%s.chr%s.bed.gz'%(filename,filename,chr,filename,filename,chr))
+                os.system('gunzip -c -f %s_scTEtmp/o1/%s.bed.gz | grep -v ^1\'[0-9]\' | grep ^%s | gzip -c > %s_scTEtmp/o2/%s.chr%s.bed.gz'%(filename,filename,chr,filename,filename,chr))
             elif chr == '2':
-                os.system('gunzip -c -f %s_scTEtmp/o1/%s.bed.gz | grep -v ^2\'[0-9]\' | grep ^%s | awk \'!x[$0]++\' | gzip -c > %s_scTEtmp/o2/%s.chr%s.bed.gz'%(filename,filename,chr,filename,filename,chr))
+                os.system('gunzip -c -f %s_scTEtmp/o1/%s.bed.gz | grep -v ^2\'[0-9]\' | grep ^%s | gzip -c > %s_scTEtmp/o2/%s.chr%s.bed.gz'%(filename,filename,chr,filename,filename,chr))
             else:
-                os.system('gunzip -c -f %s_scTEtmp/o1/%s.bed.gz | grep ^%s | awk \'!x[$0]++\' | gzip -c > %s_scTEtmp/o2/%s.chr%s.bed.gz'%(filename,filename,chr,filename,filename,chr))
+                os.system('gunzip -c -f %s_scTEtmp/o1/%s.bed.gz | grep ^%s | gzip -c > %s_scTEtmp/o2/%s.chr%s.bed.gz'%(filename,filename,chr,filename,filename,chr))
 
     CRs = defaultdict(int)
     o = gzip.open('%s_scTEtmp/o2/%s.chr%s.bed.gz'%(filename,filename,chr),'rt')

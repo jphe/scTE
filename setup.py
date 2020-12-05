@@ -17,7 +17,7 @@ setup(name='scTE',
         keywords='..',
         url='..',
         author='..',
-        author_email='he_jiangping@gibh.ac.cn; andrewh@sustech.edu.cn',
+        author_email='he_jiangping@grmh-gdl.cn; andrewh@sustech.edu.cn',
         license='..',
         packages=[
           'scTE',

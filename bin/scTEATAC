@@ -113,6 +113,7 @@ def main():
 
     timestart=datetime.datetime.now()
     
+#     args=read_opts(prepare_parser())
     parser = prepare_parser()
     args = parser.parse_args()
     info = logging.info
