@@ -6,7 +6,7 @@ Quantifying transposable element (TEs) expression from single-cell sequencing da
 
 Latest Release:
 * Github: [![Github Release](https://img.shields.io/github/v/release/taoliu/MACS)](https://github.com/jphe/scTE/releases)
-* DOI: [![DOI](https://zenodo.org/badge/190696033.svg)]
+* DOI: [![DOI](https://zenodo.org/badge/190696033.svg)](https://zenodo.org/badge/190696033.svg)
 
 scTE takes as input:
 
