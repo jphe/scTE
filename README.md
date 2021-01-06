@@ -4,6 +4,9 @@ scTE
 Quantifying transposable element (TEs) expression from single-cell sequencing data
 ----------------------------------------------------------------------
 
+Latest Release:
+* Github: [![Github Release](https://img.shields.io/github/v/release/taoliu/MACS)](https://github.com/taoliu/MACS/releases)
+
 scTE takes as input:
 
  * Aligned sequence reads (BAM/SAM format)
